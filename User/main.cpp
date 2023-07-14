@@ -66,6 +66,7 @@ int Uploadvz;
 #elif SBUS_EN
   #if FUTABA 
   #define BIAS_ADJUST  0
+  #define LINEAR_ADJUST 1
   #elif FLYSKY
   #define BIAS_ADJUST  1
   #elif SIYI
@@ -507,6 +508,12 @@ int Motor_run(int pwm_x,int pwm_y)
 {
 	//以主控板那一边为前方，大于0时往右走
 	float RW_Scale = 0.91;
+	#if LINEAR_ADJUST  //线性控制偏差，因为速度越大，偏差越大,减小量就是关于pwm的线性函数
+	float F_Slope = 0.00755;
+	float B_Slope = 0.0506;
+	float F_Const = 0.0;
+	float B_Const = 0.0;
+	#endif
     unsigned int x = abs(pwm_x);
 	unsigned short pwm,pwm_l, pwm_b;
 	pwm_b = abs(pwm_y);
@@ -571,7 +578,14 @@ int Motor_run(int pwm_x,int pwm_y)
 				motor2.spin(-pwm_y1); 
 				motor3.spin(pwm_y0);
 				motor4.spin(-pwm_y1); 
-                #else
+				#elif LINEAR_ADJUST
+				int pwm_y0 = pwm_y-(pwm_y*F_Slope + F_Const);
+				int pwm_y1 = pwm_y;
+				motor1.spin(pwm_y0);
+				motor2.spin(-pwm_y1); 
+
+
+                #else 
 				int pwm_y0 = pwm_y;   // ����pwm
 				int pwm_y1 = pwm_y;   //*0.95;  ---   �ҵ��pwm
 				motor1.spin(pwm_y0);
@@ -579,10 +593,11 @@ int Motor_run(int pwm_x,int pwm_y)
 				motor3.spin(pwm_y0);
 				motor4.spin(-pwm_y1);
                 #endif
+
 			    
 				
 		     }
-	       else if(pwm_y < -STABLE_NUM_Y)    // ����
+	       else if(pwm_y < -STABLE_NUM_Y)    // 后退
 		   	   {
 		   	     #if BIAS_ADJUST
 		   	     int pwm_y0 = pwm_y *BL_scale;
@@ -591,6 +606,11 @@ int Motor_run(int pwm_x,int pwm_y)
 			     motor2.spin(-pwm_y1); 
 				 motor3.spin(pwm_y0);
 			     motor4.spin(-pwm_y1); 
+				 #elif LINEAR_ADJUST
+				int pwm_y0 = pwm_y;
+				int pwm_y1 = pwm_y - (pwm_y*B_Slope + B_Const);
+				motor1.spin(pwm_y0);
+				motor2.spin(-pwm_y1);
 				 #else
 				 int pwm_y0 = pwm_y;
 				 int pwm_y1 = pwm_y*RW_Scale;
@@ -1048,12 +1068,13 @@ void CtrModeShow(void)
    #if IBUS_EN
    OLED_ShowString(0,0, "IBUS");
    #elif SBUS_EN
-	// 这里显示没有对应函数定义，且先注释掉
-   //OLED_ShowString(0,0, "SBUS");
+   OLED_ShowString(0,0, "SBUS");
    #elif PWM_EN
    OLED_ShowString(0,0, "PWM");
    #elif PPM_EN
    OLED_ShowString(0,0, "PPM");
+		#elif !REMOTE_CONTROL
+	 OLED_ShowString(0,0, "STM");
    #endif
 }
 
