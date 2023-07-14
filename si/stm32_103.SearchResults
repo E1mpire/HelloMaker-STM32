@@ -1,0 +1,20 @@
+---- HIGH_POWER_DRIVER_V2 Matches (9 in 3 files) ----
+Config.h (e:\stm32\dlrobot_stm32_protocol\bsp):#define  HIGH_POWER_DRIVER_V2  1
+Main.cpp (e:\stm32\dlrobot_stm32_protocol\user):#if BRUSHLESS || HIGH_POWER_DRIVER_V2
+Motor.cpp (e:\stm32\dlrobot_stm32_protocol\driver):              #if BRUSHLESS || HIGH_POWER_DRIVER_V2
+Motor.cpp (e:\stm32\dlrobot_stm32_protocol\driver):              #if BRUSHLESS || HIGH_POWER_DRIVER_V2
+Motor.cpp (e:\stm32\dlrobot_stm32_protocol\driver):              #if BRUSHLESS || HIGH_POWER_DRIVER_V2
+Motor.cpp (e:\stm32\dlrobot_stm32_protocol\driver):		#if BRUSHLESS || HIGH_POWER_DRIVER_V2
+Motor.cpp (e:\stm32\dlrobot_stm32_protocol\driver):		#if BRUSHLESS || HIGH_POWER_DRIVER_V2
+Motor.cpp (e:\stm32\dlrobot_stm32_protocol\driver):		#if BRUSHLESS || HIGH_POWER_DRIVER_V2
+Motor.cpp (e:\stm32\dlrobot_stm32_protocol\driver):		#if BRUSHLESS || HIGH_POWER_DRIVER_V2
+---- DECORDE_EN Matches (9 in 2 files) ----
+Config.h (e:\stm32\dlrobot_stm32_protocol\bsp):#define  DECORDE_EN     1
+Main.cpp (e:\stm32\dlrobot_stm32_protocol\user):#if DECORDE_EN
+Main.cpp (e:\stm32\dlrobot_stm32_protocol\user):#if DECORDE_EN
+Main.cpp (e:\stm32\dlrobot_stm32_protocol\user):#if DECORDE_EN
+Main.cpp (e:\stm32\dlrobot_stm32_protocol\user):    #if DECORDE_EN
+Main.cpp (e:\stm32\dlrobot_stm32_protocol\user):						   #if DECORDE_EN
+Main.cpp (e:\stm32\dlrobot_stm32_protocol\user):                #if !DECORDE_EN 
+Main.cpp (e:\stm32\dlrobot_stm32_protocol\user):			   #if DECORDE_EN
+Main.cpp (e:\stm32\dlrobot_stm32_protocol\user):		  if(DECORDE_EN)
