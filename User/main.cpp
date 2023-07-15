@@ -30,7 +30,7 @@ bool PC_ControlServo = false;
 
 // 自定义
 #define ROTATION_CENTRE 0.5   //旋转的中心点   
-#define REMOTE_CONTROL_FLAG 1 //遥控器控制标志位
+#define REMOTE_CONTROL_FLAG 0 //遥控器控制标志位,1是遥控器控制
 
 
 #if REDUCTION_RATIO == 5
@@ -1067,13 +1067,13 @@ void CtrModeShow(void)
 {
    #if IBUS_EN
    OLED_ShowString(0,0, "IBUS");
-   #elif SBUS_EN
+   #elif (SBUS_EN&&REMOTE_CONTROL_FLAG)
    OLED_ShowString(0,0, "SBUS");
    #elif PWM_EN
    OLED_ShowString(0,0, "PWM");
    #elif PPM_EN
    OLED_ShowString(0,0, "PPM");
-		#elif !REMOTE_CONTROL
+	#elif !REMOTE_CONTROL_FLAG
 	 OLED_ShowString(0,0, "STM");
    #endif
 }
@@ -1319,123 +1319,69 @@ void TaskTimeHandle(void)
 以下为自己写的函数
 */
 
-//测距函数
+// 调节系数定义
+float FHspeed_Scale=0.99025;
+float FLspeed_Scale=0.99045;
+float BHspeed_Scale;
+float BLspeed_Scale;
+// 高速和低速的基准pwm值
+int highspeed = 200;
+int lowspeed = 100;
 
-void getDistances()
-{
-	/*
-	*在运动状态模块进行调用计算从某点开始小车走过的距离
-	*/
-	float y_vel;
-	float x_vel;
-	float vel_1;
-	float vel_2;
-	unsigned long running_time;
+int pwm_y1;
+int pwm_y2;
+int pwm_x1;
+int pwm_x2;
 	
-    current_rpm1 = encoder1.getRPM();
-    current_rpm2 = encoder2.getRPM();
-
-	vel_1 = current_rpm1*WHEEL_DIAMETER/2;
-	vel_2 = current_rpm2*WHEEL_DIAMETER/2;
-
-
-	y_vel = (vel_1 + vel_2) / 60; // 前进速度m/s
-	x_vel = (vel_1 - vel_2) / 60; //横向速度，右为正
-
-	running_time = millis();
-	running_time = running_time - previous_movebase_time;       
-
-	Distance_y = Distance_y + y_vel*running_time; 
-	Distance_x = Distance_x + x_vel*running_time;
-
+void Highspeed_Forward()
+{
+	// 往右偏，左轮太快
+	pwm_y1 = highspeed*FHspeed_Scale;
+	pwm_y2 = highspeed;
+	motor1.spin(pwm_y1);   //左轮
+	motor2.spin(-pwm_y2);   //右轮，电机接受的值与左轮相反
 
 }
+		
 
-void ClearDistance()
+void Lowspeed_Forward()
 {
-	/*
-	*清除当前走过距离，重新开始记录
-	*/
-	Distance_x = 0.0;
-	Distance_y = 0.0;
-}
-
-void activate(char* command)
-{
-	if(command == "forward")  //前进
-	{
-		target_pwmx = 0;
-		target_pwmy = 100;
-	}
-	else if (command == "backward")
-	{
-		target_pwmx = 0;
-		target_pwmy = 100;
-		target_pwmy = -target_pwmy;
-	}
-	
-	else if (command == "stop") //停止
-	{
-		target_pwmx = 0;
-		target_pwmy = 0;
-	}
-	#if 0
-	else if (command == "brake")//刹车
-	{
-		target_pwmx = 0;
-		target_pwmy = -30;
-		if(current_pwmx==0 && (current_pwmy==target_pwmy))
-		{
-			delay(100);
-			moderate_flag=true; //减速已经完成
-		} 
-		if (moderate_flag)
-		{
-			target_pwmx = 0;
-			target_pwmy = 0;
-		}
-		if (current_pwmx==0 && current_pwmy==0) moderate_flag = false;
-	}
-	#endif
-	else if ("left") //左转
-	{
-		Motor_run(-60,80);
-	}
-	else if ("right")  //右转
-	{
-		Motor_run(60,80);
-	}
-	else   //未定义行为
-	{
-		target_pwmx = 0;
-		target_pwmy = 0;
-	}
-	// 节流阀控制
-	if(target_pwmx > current_pwmx ) (target_pwmx > (current_pwmx+step)) ? (current_pwmx+=step) : current_pwmx++;
-	else if(target_pwmx < current_pwmx ) (target_pwmx < (current_pwmx-step)) ? (current_pwmx-=step) : current_pwmx--;
-	if(target_pwmy > current_pwmy ) (target_pwmy > (current_pwmy+step)) ? (current_pwmy+=step) : current_pwmy++;
-	else if(target_pwmy < current_pwmy ) (target_pwmy < (current_pwmy-step)) ? (current_pwmy-=step) : current_pwmy--;	
-	Motor_run(current_pwmx,current_pwmy);
-	
-	
-}
-void forward()
-{
-	// 前进
-	
-}
-
-void stop()
-{
-	// 停止
-	
-}
-
-void brake()
-{
-	//刹车
+	//往右偏，左轮太快
+	pwm_y1 = lowspeed*FLspeed_Scale;
+	pwm_y2 = lowspeed;
+	motor1.spin(pwm_y1);   //左轮
+	motor2.spin(-pwm_y2);   //右轮，电机接受的值与左轮相反
 
 }
+void Highspeed_Backrward()
+{
+	// 往左偏，右轮过快
+	pwm_y1 = highspeed;
+	pwm_y2 = highspeed-10;
+	motor1.spin(-pwm_y1);   //左轮
+	motor2.spin(pwm_y2);   //右轮，电机接受的值与左轮相反
+}
+
+void Lowspeed_Backrward() //停止
+{
+	target_pwmx = 0;
+	target_pwmy = 0;
+}
+void Left()
+{
+	Motor_run(-60,80);
+}
+void Right()  //右转
+{
+	Motor_run(60,80);
+}
+void Stop()
+{
+	motor1.spin(0);
+	motor2.spin(0);
+}
+	
+
 
 /*---------------------------------------------------------------------------*/
 int main(void) 
@@ -1537,8 +1483,14 @@ int main(void)
 	#endif
 	// led开关
 	led.on_off(OnOff);
+
+	Highspeed_Backrward();
+	delay(5000);
+	Stop();
+
 	/*-------------------------------以上都是初始化------------------------------------------*/
 	// 主循环
+	#if 0
 	while(1)
 	{
 	    #if REMOTE_CONTROL_FLAG
@@ -1642,18 +1594,14 @@ int main(void)
 		    } 
 		#endif 
 		#if !REMOTE_CONTROL_FLAG
-		//if ((millis() - previous_control_time) >= (1000 / COMMAND_RATE))
-		//{
+		if ((millis() - previous_control_time) >= (1000 / COMMAND_RATE))
+		{
 			/*
 			*程序控制模块，当不使用遥控器控制时
 			*/
-			activate("forward");
-			delay(1000);
-			activate("stop");
-			delay(1000);
-
-			//previous_control_time = millis();
-		//}
+			
+			previous_control_time = millis();
+		}
 
 	#endif
 
@@ -1664,16 +1612,6 @@ int main(void)
 			*速度模块,如果有编码器将进行平滑速度控制，每1000/40=25ms获取一次速度
 			*/   
                getVelocities();
-			   getDistances();
-			   if (Distance_x>=1 && Distance_y>=1)
-			   {
-				OLED_ShowNumber(0, 48, 4396,4,16);
-				OLED_ShowNumber(0, 32, 4396,4,16);
-				break;
-			   }
-			   #if DECORDE_EN
-	           move_base();	  
-			   #endif
                previous_movebase_time = millis();	  
 		    }
 		#endif
@@ -1762,7 +1700,7 @@ int main(void)
 			#endif
 
 			#if !REMOTE_CONTEOL_FLAG
-
+			// 脱离遥控器控制时的OLED屏幕，暂且空着
 			
 
 		    #endif
@@ -1822,6 +1760,6 @@ int main(void)
 
          
 	 }
-             
+    #endif
    }
 
