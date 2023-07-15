@@ -1336,8 +1336,8 @@ void TaskTimeHandle(void)
 // 调节系数定义
 float FHspeed_Scale=0.99025;
 float FLspeed_Scale=0.99045;
-float BHspeed_Scale;
-float BLspeed_Scale;
+float BHspeed_Scale=0.970;
+float BLspeed_Scale=0.99;
 // 高速和低速的基准pwm值
 int highspeed = 200;
 int lowspeed = 100;
@@ -1371,15 +1371,17 @@ void Highspeed_Backrward()
 {
 	// 往左偏，右轮过快
 	pwm_y1 = highspeed;
-	pwm_y2 = highspeed-10;
+	pwm_y2 = highspeed*BHspeed_Scale;
 	motor1.spin(-pwm_y1);   //左轮
 	motor2.spin(pwm_y2);   //右轮，电机接受的值与左轮相反
 }
 
 void Lowspeed_Backrward() //停止
 {
-	target_pwmx = 0;
-	target_pwmy = 0;
+	pwm_y1 = lowspeed;
+	pwm_y2 = lowspeed*BLspeed_Scale;
+	motor1.spin(pwm_y1);   //左轮
+	motor2.spin(-pwm_y2);   //右轮，电机接受的值与左轮相反
 }
 void Left()
 {
@@ -1525,19 +1527,17 @@ int main(void)
 			}
 			if (Remote_off_flag==1&&Remote_on_flag==1)
 			{
-				drv_uart_tx_bytes(( uint8_t *)error_response, 14 );	//两个都不是，报告错误形式
 				Remote_off_flag = 0;
 				Remote_on_flag = 0;
 			}
 			else if (Remote_on_flag==0)
 			{
 				REMOTE_CONTROL_FLAG = 1; //进入遥控模式
-				drv_uart_tx_bytes(( uint8_t *)Remote_on_response, 25 );
+
 				Remote_off_flag = 0; //刷新符号位
 			}
 			else if (Remote_off_flag==0)
 			{
-				drv_uart_tx_bytes(( uint8_t *)Remote_off_response, 24 );
 				REMOTE_CONTROL_FLAG = 0;//退出遥控模式
 				Remote_on_flag = 0;
 			}
