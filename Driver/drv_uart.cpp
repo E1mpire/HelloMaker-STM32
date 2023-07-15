@@ -64,7 +64,33 @@ void drv_uart_init( uint32_t UartBaudRate )
 	
 	USART_Cmd( UART_PORT, DISABLE );									//失能外设
 	USART_Init( UART_PORT, &UartinitStructer );							//初始化外设
-	USART_Cmd( UART_PORT, ENABLE );										//使能外设	
+	USART_Cmd( UART_PORT, ENABLE );
+	//使能外设
+	//模式设置
+	GPIO_InitTypeDef GPIOInitStruct;
+	RCC_APB2PeriphClockCmd(AUX_GPIO_CLK | MO1_GPIO_CLK | MO2_GPIO_CLK, ENABLE);
+
+	// 不需要知道工作状态，直接接地
+	GPIOInitStruct.GPIO_Mode =  GPIO_Mode_Out_PP;
+	GPIOInitStruct.GPIO_Speed = GPIO_Speed_2MHz;	
+	GPIOInitStruct.GPIO_Pin = AUX_GPIO_PIN;
+	GPIO_Init(AUX_GPIO_PORT, &GPIOInitStruct);
+	GPIO_ResetBits(AUX_GPIO_PORT, AUX_GPIO_PIN);
+
+	/*
+	*MO1 0 MO2 0 一般工作状态
+	*MO1 0 MO2 1 省电工作状态，串口接受关闭，无线处于空中唤醒
+	*MO1 1 MO2 0 串口打开，无线打开，需要在信号中添加唤醒码唤醒接收方
+	*MO1 1 MO2 1 休眠状态，必须处于休眠状态才能进行配置
+	*/
+	GPIOInitStruct.GPIO_Pin = MO1_GPIO_PIN;	
+	GPIO_Init(MO1_GPIO_PORT, &GPIOInitStruct);
+	GPIO_ResetBits(MO1_GPIO_PORT, MO2_GPIO_PIN);
+
+	GPIOInitStruct.GPIO_Pin = MO2_GPIO_PIN;	
+	GPIO_Init(MO2_GPIO_PORT, &GPIOInitStruct);
+	GPIO_ResetBits(MO2_GPIO_PORT, MO2_GPIO_PIN);
+
 }
 
 /**

@@ -38,6 +38,20 @@
 #define UART_RX_GPIO_PIN			GPIO_Pin_10
 
 
+//模式引脚定义
+#define AUX_GPIO_PORT         GPIOA
+#define AUX_GPIO_CLK          RCC_APB2Periph_GPIOA
+#define AUX_GPIO_PIN          GPIO_Pin_12
+
+#define MO1_GPIO_PORT         GPIOA
+#define MO1_GPIO_CLK          RCC_APB2Periph_GPIOA
+#define MO1_GPIO_PIN          GPIO_Pin_11
+
+#define MO2_GPIO_PORT         GPIOC
+#define MO2_GPIO_CLK          RCC_APB2Periph_GPIOC
+#define MO2_GPIO_PIN          GPIO_Pin_8
+
+
 void drv_uart_init( uint32_t UartBaudRate );
 void drv_uart_tx_bytes( uint8_t* TxBuffer, uint8_t Length );
 uint8_t drv_uart_rx_bytes( uint8_t* RxBuffer );

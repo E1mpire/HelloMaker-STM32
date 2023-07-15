@@ -31,7 +31,7 @@ bool PC_ControlServo = false;
 
 // 自定义
 #define ROTATION_CENTRE 0.5   //旋转的中心点   
-#define REMOTE_CONTROL_FLAG 1 //遥控器控制标志位,1是遥控器控制
+
 
 
 #if REDUCTION_RATIO == 5
@@ -263,15 +263,19 @@ int target_pwmy = 0;
 bool moderate_flag=false; //刹车减速是否完成，可以开始停车
 
 // LoRa通信模块变量
-uint8_t Remote_on[8] = {'R','e','m','o','t','e','o','n'};  //接受Remoteon以打开遥控模式
-uint8_t Remote_off[8] = {'R','e','m','o','t','e','o','f'};  //接受Remoteof以打开遥控模式 
+uint8_t Remote_on[8] = {'o','n','R','e','m','o','t','e'};  //接受onRemote以打开遥控模式
+uint8_t Remote_off[8] = {'f','f','R','e','m','o','t','e'};  //接受ffRemoteof以打开遥控模式 
 uint8_t LoRa_buffer[100] = {0};
 uint8_t RxLength = 0;
 // 用来表示信息状态
-int Handset_on_flag = 0;
-int Handsetoff_flag = 0;
+uint8_t Remote_on_flag = 0;
+uint8_t Remote_off_flag = 0;
 
-char *pushing = "ashining";
+char *error_response = "Error format\n";
+char *Remote_on_response = "RemoteControl activate!\n";
+char *Remote_off_response = "RemoteControl disable!\n";
+
+uint8_t REMOTE_CONTROL_FLAG = 1; //遥控器控制标志位,1是遥控器控制
 #if BIAS_ADJUST
 void ProjectModeGpioInit(void)
 {
@@ -1076,14 +1080,15 @@ void CtrModeShow(void)
 {
    #if IBUS_EN
    OLED_ShowString(0,0, "IBUS");
-   #elif (SBUS_EN&&REMOTE_CONTROL_FLAG)
-   OLED_ShowString(0,0, "SBUS");
+   #elif (SBUS_EN)
+   if(REMOTE_CONTROL_FLAG)  OLED_ShowString(0,0, "SBUS"); //遥控器控制
+   else OLED_ShowString(0,0, "STM");   // 非遥控器控制
    #elif PWM_EN
    OLED_ShowString(0,0, "PWM");
    #elif PPM_EN
    OLED_ShowString(0,0, "PPM");
-	#elif !REMOTE_CONTROL_FLAG
-	 OLED_ShowString(0,0, "STM");
+
+	
    #endif
 }
 
@@ -1496,123 +1501,60 @@ int main(void)
 
 
 
-#if !REMOTE_CONTROL_FLAG
-	Highspeed_Backrward();
-	delay(5000);
-	Stop();
-#endif
+
 	/*-------------------------------以上都是初始化------------------------------------------*/
 	// 主循环
 	#if 1
 	while(1)
 	{
-	    #if REMOTE_CONTROL_FLAG
-		#if 0 
-		if ((millis() - previous_control_time) >= (1000 / COMMAND_RATE))
-		{  
-        /*
-		*舵机模块，连接UART时每过1000/20=50ms执行一次，使用舵机进行运动控制
-		*但是没有舵机，这个USART口用来进行LoRa通信
-		*/        
-			 
-               if(dlProtocol.UartRxOK())  //如果连接了PC
-              	{  
-              	   PC_start = true;  //连接了PC
-                   if(dlProtocol.IsServoCmd())  //舵机处于启动状态
-                   	{    
-                   	     #if SERVO_EN
-                         PC_ControlServo = true;
-					     dlProtocol.Get_servo();
-						 s1 =  dlProtocol.req_s1;
-						 s2 =  dlProtocol.req_s2;
-						 s3 =  dlProtocol.req_s3;
-						 s4 =  dlProtocol.req_s4;
-						 time= dlProtocol.req_time;
-                         ServoPwmDutySet[1] = map(s1 ,0,180,500,2500);
-				         ServoPwmDutySet[2] = map(s2 ,0,180,500,2500);
-						 ServoPwmDutySet[3] = map(s3 ,0,180,500,2500);
-				         ServoPwmDutySet[4] = map(s4 ,0,180,500,2500);
-						 #if 1
-						 if(ServoPwmDutySet[1] >= 2500) ServoPwmDutySet[1] = 2499;
-						 if(ServoPwmDutySet[2] >= 2500) ServoPwmDutySet[2] = 2499;
-						 if(ServoPwmDutySet[3] >= 2500) ServoPwmDutySet[3] = 2499;
-						 if(ServoPwmDutySet[4] >= 2500) ServoPwmDutySet[4] = 2499;
-						 #endif
-						 ServoSetPluseAndTime(1,ServoPwmDutySet[1],time);
-				         ServoSetPluseAndTime(2,ServoPwmDutySet[2],time);
-						 ServoSetPluseAndTime(3,ServoPwmDutySet[3],time);
-				         ServoSetPluseAndTime(4,ServoPwmDutySet[4],time);
-						 #endif
-				    }
-                    else if(dlProtocol.IsMotorCmd())//电机处于启动状态
-                    	{
-
-						   #if DECORDE_EN
-		                   dlProtocol.GetVelocity_XYZaxis();
-						   required_linear_vel =   dlProtocol.GetVelocity_Xaxis();
-						   required_angular_vel  = dlProtocol.GetVelocity_Zaxis();
-						   #else
-		                   dlProtocol.BrushGetVelocity_XYZaxis(); //从UART中读取需求速度，并限制在-100~100
-						   required_linear_throttle =    dlProtocol.GetVelocity_Xaxis();
-						   required_angular_throttle  = -dlProtocol.GetVelocity_Zaxis();
-						   if(required_linear_throttle > 100) required_linear_throttle = 100;
-		                   else if (required_linear_throttle < -100) required_linear_throttle = -100;
-						   if(required_angular_throttle > 100) required_angular_throttle = 100;
-		                   else if (required_angular_throttle < -100) required_angular_throttle = -100;
-						   #endif      
-			            }
-					previous_command_time = millis(); 	//command_time开始时刻
-				}
-            
-
-			   //将需求的速度映射为PC值
-                #if !DECORDE_EN 
-			    Goal_PC_RY_VALUE  = map(required_linear_throttle, -100,100,-240,240);
-			    Goal_PC_RX_VALUE  = map(required_angular_throttle,-100,100,-240,240);
-                if( PC_start == true && b_rc_idle == true)  // 连接了PC且不处于遥控器控制状态
-			   	{
-				   PC_ThrottleControl();
-				   if(Cur_PC_RX_VALUE == 0 && Cur_PC_RY_VALUE == 0)
-				   	{
-				   	   motor1.spin(0);//电机停转
-			           motor2.spin(0); 
-					   motor3.spin(0);
-			           motor4.spin(0); 
-				   	}
-			   	}
-               #endif
-			   previous_control_time = millis();  //control_time刷新
-			}
-			#endif 
-	   #endif
-
-	   if((millis()-previous_LoRa_time)>=20)
+		if((millis()-previous_LoRa_time)>=20)
 	   {
 		/*
 		*LoRa通信模块，用来接收传输的控制信息
 		*/
-		drv_uart_tx_bytes(( uint8_t *)pushing, 8 );			//发送固定字符串 ashining 字符串
-
-
 		RxLength = drv_uart_rx_bytes(LoRa_buffer);
-		if (RxLength != 0)
-		{		
-		}
+		if (RxLength =! 0)
+		{
+			drv_uart_tx_bytes((uint8_t *)LoRa_buffer, RxLength);
+			for(int i=0; i<8; i++)	
+			{	
+				// 如果不是某条信息，那么符号位变为1，不再比较
+				if (LoRa_buffer[i]!=Remote_on[i] && Remote_on_flag!= 1)  Remote_on_flag = 1;
+				if (LoRa_buffer[i]!=Remote_off[i] && Remote_off_flag!= 1)  Remote_off_flag = 1;
+
+			}
+			if (Remote_off_flag==1&&Remote_on_flag==1)
+			{
+				drv_uart_tx_bytes(( uint8_t *)error_response, 14 );	//两个都不是，报告错误形式
+				Remote_off_flag = 0;
+				Remote_on_flag = 0;
+			}
+			else if (Remote_on_flag==0)
+			{
+				REMOTE_CONTROL_FLAG = 1; //进入遥控模式
+				drv_uart_tx_bytes(( uint8_t *)Remote_on_response, 25 );
+				Remote_off_flag = 0; //刷新符号位
+			}
+			else if (Remote_off_flag==0)
+			{
+				drv_uart_tx_bytes(( uint8_t *)Remote_off_response, 24 );
+				REMOTE_CONTROL_FLAG = 0;//退出遥控模式
+				Remote_on_flag = 0;
+			}
+			
 		
-
+		}
 	   }
-
 	   
-       #if (CONNECT_DETEC && REMOTE_CONTROL_FLAG)
-       if ((millis() - previous_command_time) >= 250){  
+       #if (CONNECT_DETEC)
+       if ((millis() - previous_command_time) >= 250 && REMOTE_CONTROL_FLAG){  
 		/*
 		/PC运动模块运行250ms后刷新，即5次后清空PC_ThrottleControl参数
 		*/
 		      if(b_rc_idle == true)  stop_base();
          }
 	   #endif
-	   #if REMOTE_CONTROL_FLAG
-        if((millis() - previous_flysky_time) >= (1000 / IBUS_RATE))
+        if((millis() - previous_flysky_time) >= (1000 / IBUS_RATE) && REMOTE_CONTROL_FLAG)
         	{
 			/*
 			*遥控器模块，每1000/40=25ms执行一次，运行遥控器控制
@@ -1628,18 +1570,20 @@ int main(void)
               #endif
               previous_flysky_time = millis();				  
 		    } 
-		#endif 
-		#if !REMOTE_CONTROL_FLAG
-		if ((millis() - previous_control_time) >= (1000 / COMMAND_RATE))
+
+
+		if ((millis() - previous_control_time) >= (1000 / COMMAND_RATE)&& !REMOTE_CONTROL_FLAG)
 		{
 			/*
 			*程序控制模块，当不使用遥控器控制时
 			*/
-			
+			Highspeed_Backrward();
+			delay(5000);
+			Stop();
+			delay(5000);
 			previous_control_time = millis();
 		}
 
-	#endif
 
 		#if 1
         if((millis() - previous_movebase_time) >= (1000 / MOVEBASE_RATE))
@@ -1651,46 +1595,7 @@ int main(void)
                previous_movebase_time = millis();	  
 		    }
 		#endif
-		#if SERVO_EN
-		TaskTimeHandle();    
-		if ((millis() - previous_servo_time) >= (1000 / SERVO_RATE)) {
 
-			  if(rc_stable == true && PC_ControlServo == false)  
-      	        {
-      	           #if SBUS_EN
-
-					   #if FUTABA
-					   ServoPwmDutySet[1] = map(Pulsewidth_S1,200,1800,500,2500);
-					   ServoPwmDutySet[2] = map(Pulsewidth_S2,200,1800,500,2500);
-					   #else
-	                   ServoPwmDutySet[1] = map(Pulsewidth_S1,272,1712,500,2500);
-					   ServoPwmDutySet[2] = map(Pulsewidth_S2,272,1712,500,2500);
-					   #endif
-				   #else
-                   ServoPwmDutySet[1] = map(Pulsewidth_S1,1000,2000,500,2500);
-				   ServoPwmDutySet[2] = map(Pulsewidth_S2,1000,2000,500,2500);
-				   #endif
-				   ServoSetPluseAndTime(1,ServoPwmDutySet[1],100);
-				   ServoSetPluseAndTime(2,ServoPwmDutySet[2],100);	
-	            }
-		      previous_servo_time = millis();
-            }
-        #endif
-        #if 0
-        if ((millis() - previous_imu_time) >= (1000 / IMU_PUBLISH_RATE)){
-            if(!imu_is_initialized)
-				{
-	                imu_is_initialized = initIMU();
-	                if(imu_is_initialized){
-	                   
-	                }else{
-	     
-	                }          
-                }
-                previous_imu_time = millis();
-			
-           }
-		#endif
 	    #if TILT_DETEC 
         if ((millis() - previous_imu_time) >= (1000 / IMU_PUBLISH_RATE)){
             if(!imu_is_initialized)
@@ -1713,11 +1618,10 @@ int main(void)
 
 		 #if OLED_EN
 		 
-		 if((millis() - previous_oled_time) >= (1000 / OLED_RATE)){
+		 if((millis() - previous_oled_time) >= (1000 / OLED_RATE)&& REMOTE_CONTROL_FLAG){
 			/*
 			*OLED模块，，遥控器使用时启动每1000/50=20ms在屏幕上更新运动数据
-			*/
-            #if REMOTE_CONTROL_FLAG   
+			*/ 
 			    static int count ,fresh,num;
                 if(fresh++ >= 20)
 				  {
@@ -1733,14 +1637,16 @@ int main(void)
 			          OLED_Refresh_Gram();
 				  }
 				 previous_oled_time = millis();
-			#endif
-
-			#if !REMOTE_CONTEOL_FLAG
-			// 脱离遥控器控制时的OLED屏幕，暂且空着
 			
-
-		    #endif
+			
+			
 			}
+			else if ((millis() - previous_oled_time) >= (1000 / OLED_RATE)&& !REMOTE_CONTROL_FLAG)
+			{
+				// 脱离遥控器控制时的OLED屏幕，暂且空着
+				previous_oled_time = millis();
+			}
+			
 			
 
          #endif
