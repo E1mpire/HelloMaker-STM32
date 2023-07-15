@@ -327,7 +327,7 @@
             <wLevel>1</wLevel>
             <uThumb>0</uThumb>
             <uSurpInc>0</uSurpInc>
-            <uC99>1</uC99>
+            <uC99>0</uC99>
             <uGnu>0</uGnu>
             <useXO>0</useXO>
             <v6Lang>3</v6Lang>
@@ -389,16 +389,6 @@
               <FileName>main.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>.\User\main.cpp</FilePath>
-            </File>
-            <File>
-              <FileName>drv_uart.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\User\drv_uart.c</FilePath>
-            </File>
-            <File>
-              <FileName>drv_uart.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\User\drv_uart.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -609,6 +599,16 @@
               <FileName>oled.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\Driver\oled.c</FilePath>
+            </File>
+            <File>
+              <FileName>drv_uart.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\Driver\drv_uart.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>drv_uart.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Driver\drv_uart.h</FilePath>
             </File>
           </Files>
         </Group>
