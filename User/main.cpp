@@ -20,6 +20,7 @@
 #include <math.h>
 #include "Oled.h"
 #include "sonar.h"
+#include "drv_uart.h"
  
 
 double required_angular_vel = 0,required_angular_vel_=0;
@@ -30,7 +31,7 @@ bool PC_ControlServo = false;
 
 // 自定义
 #define ROTATION_CENTRE 0.5   //旋转的中心点   
-#define REMOTE_CONTROL_FLAG 0 //遥控器控制标志位,1是遥控器控制
+#define REMOTE_CONTROL_FLAG 1 //遥控器控制标志位,1是遥控器控制
 
 
 #if REDUCTION_RATIO == 5
@@ -49,6 +50,7 @@ bool PC_ControlServo = false;
 double required_Servo_pos = 0;
 uint32_t previous_location_time = 0;
 uint32_t previous_command_time = 0;
+uint32_t previous_LoRa_time =0;
 bool is_first = true;
 static bool imu_is_initialized = false;
 int PS2_LX,PS2_LY,PS2_RX,PS2_RY,PS2_KEY;  
@@ -260,8 +262,16 @@ int target_pwmx = 0;
 int target_pwmy = 0;
 bool moderate_flag=false; //刹车减速是否完成，可以开始停车
 
+// LoRa通信模块变量
+uint8_t Remote_on[8] = {'R','e','m','o','t','e','o','n'};  //接受Remoteon以打开遥控模式
+uint8_t Remote_off[8] = {'R','e','m','o','t','e','o','f'};  //接受Remoteof以打开遥控模式 
+uint8_t LoRa_buffer[100] = {0};
+uint8_t RxLength = 0;
+// 用来表示信息状态
+int Handset_on_flag = 0;
+int Handsetoff_flag = 0;
 
-
+char *pushing = "ashining";
 #if BIAS_ADJUST
 void ProjectModeGpioInit(void)
 {
@@ -464,9 +474,8 @@ void print_debug()
 		j = 0; 
 
         sprintf(buffer, "r1 =%d, r2= %d \r\n", req_rpm.motor1,req_rpm.motor2);
-		SerialProtocol.putstr(buffer);
+
 		sprintf(buffer, "c1 =%d, c2= %d \r\n", current_rpm1,current_rpm2);
-		SerialProtocol.putstr(buffer);
 
 	   
 		#if 0
@@ -1383,6 +1392,7 @@ void Stop()
 	
 
 
+
 /*---------------------------------------------------------------------------*/
 int main(void) 
 {
@@ -1462,8 +1472,8 @@ int main(void)
 
 	// 设置Serial口的波特率
 	SerialPrint.begin(115200);
-	SerialProtocol.begin(115200);
 	dlProtocol.begin();
+	drv_uart_init(9600);  //LoRa串口初始化
 
     #if IBUS_EN
     SerialBus.begin(115200);
@@ -1484,21 +1494,27 @@ int main(void)
 	// led开关
 	led.on_off(OnOff);
 
+
+
+#if !REMOTE_CONTROL_FLAG
 	Highspeed_Backrward();
 	delay(5000);
 	Stop();
-
+#endif
 	/*-------------------------------以上都是初始化------------------------------------------*/
 	// 主循环
-	#if 0
+	#if 1
 	while(1)
 	{
 	    #if REMOTE_CONTROL_FLAG
+		#if 0 
 		if ((millis() - previous_control_time) >= (1000 / COMMAND_RATE))
 		{  
         /*
-		*PC运动模块，连接UART时每过1000/20=50ms执行一次
+		*舵机模块，连接UART时每过1000/20=50ms执行一次，使用舵机进行运动控制
+		*但是没有舵机，这个USART口用来进行LoRa通信
 		*/        
+			 
                if(dlProtocol.UartRxOK())  //如果连接了PC
               	{  
               	   PC_start = true;  //连接了PC
@@ -1547,6 +1563,8 @@ int main(void)
 			            }
 					previous_command_time = millis(); 	//command_time开始时刻
 				}
+            
+
 			   //将需求的速度映射为PC值
                 #if !DECORDE_EN 
 			    Goal_PC_RY_VALUE  = map(required_linear_throttle, -100,100,-240,240);
@@ -1564,8 +1582,26 @@ int main(void)
 			   	}
                #endif
 			   previous_control_time = millis();  //control_time刷新
-			} 
+			}
+			#endif 
 	   #endif
+
+	   if((millis()-previous_LoRa_time)>=20)
+	   {
+		/*
+		*LoRa通信模块，用来接收传输的控制信息
+		*/
+		drv_uart_tx_bytes(( uint8_t *)pushing, 8 );			//发送固定字符串 ashining 字符串
+
+
+		RxLength = drv_uart_rx_bytes(LoRa_buffer);
+		if (RxLength != 0)
+		{		
+		}
+		
+
+	   }
+
 	   
        #if (CONNECT_DETEC && REMOTE_CONTROL_FLAG)
        if ((millis() - previous_command_time) >= 250){  

@@ -390,6 +390,16 @@
               <FileType>8</FileType>
               <FilePath>.\User\main.cpp</FilePath>
             </File>
+            <File>
+              <FileName>drv_uart.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\User\drv_uart.c</FilePath>
+            </File>
+            <File>
+              <FileName>drv_uart.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\User\drv_uart.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

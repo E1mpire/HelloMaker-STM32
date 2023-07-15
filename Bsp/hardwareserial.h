@@ -6,7 +6,7 @@
 
 class HardwareSerial {
 public:
-	HardwareSerial(Serial_TypeDef _Serial=SERIAL1);
+	HardwareSerial(Serial_TypeDef _Serial);
 	~HardwareSerial(){};
 	void begin(uint32_t baud);
 

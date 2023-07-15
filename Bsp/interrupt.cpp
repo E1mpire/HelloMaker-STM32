@@ -14,14 +14,18 @@ HardwareSerial *Serial2=0 ;
 #ifdef  USE_SERIAL3
 HardwareSerial *Serial3=0 ;
 #endif 
-
+/*
 void USART1_IRQHandler(void) 
 {
 #ifdef  USE_SERIAL1
-       dlProtocol.loop();
+
+	dlProtocol.loop();//原来是舵机获取速度的函数，现在改为LoRa模块
+
+       
 	 //  Serial1->irq();   /// mark
 #endif
 }
+*/
 
 void USART2_IRQHandler(void) 
 {

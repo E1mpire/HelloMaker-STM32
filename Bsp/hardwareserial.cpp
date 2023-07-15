@@ -17,8 +17,8 @@ HardwareSerial::HardwareSerial(Serial_TypeDef _Serial)
 {
 		Serial = _Serial;
 
-		if(this->Serial == SERIAL1)
-			Serial1 = this;
+		//if(this->Serial == SERIAL1)
+		//	Serial1 = this;
 		if(this->Serial == SERIAL2)
 			Serial2 = this;
 		
