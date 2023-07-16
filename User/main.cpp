@@ -1544,6 +1544,7 @@ int main(void)
 			
 		
 		}
+		   previous_LoRa_time = millis();
 	   }
 	   
        #if (CONNECT_DETEC)
