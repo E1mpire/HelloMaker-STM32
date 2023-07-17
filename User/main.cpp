@@ -1397,7 +1397,15 @@ void Stop()
 	motor2.spin(0);
 }
 	
+void test_control()
+{
+	//  测试用函数
+	Lowspeed_Forward();
+	delay(5000);
+	Stop();
+	delay(5000);
 
+}
 
 
 /*---------------------------------------------------------------------------*/
@@ -1501,7 +1509,7 @@ int main(void)
 	// led开关
 	led.on_off(OnOff);
 
-
+	//test_control();
 
 
 	/*-------------------------------以上都是初始化------------------------------------------*/
@@ -1544,7 +1552,6 @@ int main(void)
 			
 		
 		}
-		   previous_LoRa_time = millis();
 	   }
 	   
        #if (CONNECT_DETEC)
@@ -1578,10 +1585,7 @@ int main(void)
 			/*
 			*程序控制模块，当不使用遥控器控制时
 			*/
-			Highspeed_Backrward();
-			delay(5000);
-			Stop();
-			delay(5000);
+			test_control();
 			previous_control_time = millis();
 		}
 
@@ -1705,4 +1709,3 @@ int main(void)
 	 }
     #endif
    }
-
