@@ -67,8 +67,8 @@ int Uploadvz;
 #define BIAS_ADJUST  1
 #elif SBUS_EN
   #if FUTABA 
-  #define BIAS_ADJUST  0
-  #define LINEAR_ADJUST 1
+  #define BIAS_ADJUST  1
+  #define LINEAR_ADJUST 0
   #elif FLYSKY
   #define BIAS_ADJUST  1
   #elif SIYI
@@ -78,6 +78,12 @@ int Uploadvz;
   #else 
   #define BIAS_ADJUST  0
   #endif
+#endif
+#if LINEAR_ADJUST  //线性控制偏差，因为速度越大，偏差越大,减小量就是关于pwm的线性函数
+float F_Slope = 0.00755;
+float B_Slope = 0.0506;
+float F_Const = 0.0;
+float B_Const = 0.0;
 #endif
 
 #if BIAS_ADJUST
@@ -516,16 +522,9 @@ int rc_idle_times  = 0;
 int Motor_run(int pwm_x,int pwm_y)
 {
 	//以主控板那一边为前方，大于0时往右走
-	float RW_Scale = 0.91;
-	#if LINEAR_ADJUST  //线性控制偏差，因为速度越大，偏差越大,减小量就是关于pwm的线性函数
-	float F_Slope = 0.00755;
-	float B_Slope = 0.0506;
-	float F_Const = 0.0;
-	float B_Const = 0.0;
-	#endif
     unsigned int x = abs(pwm_x);
-	unsigned short pwm,pwm_l, pwm_b;
-	pwm_b = abs(pwm_y);
+    unsigned short pwm,pwm_l, pwm_b;
+    pwm_b = abs(pwm_y);
    if( pwm_x > STABLE_NUM_X )                                      // right
 		{
            if( pwm_y > STABLE_NUM_Y) {                             // front  right    
