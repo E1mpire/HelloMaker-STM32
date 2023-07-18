@@ -271,10 +271,6 @@ uint8_t RxLength = 0;
 uint8_t Remote_on_flag = 0;
 uint8_t Remote_off_flag = 0;
 
-char *error_response = "Error format\n";
-char *Remote_on_response = "RemoteControl activate!\n";
-char *Remote_off_response = "RemoteControl disable!\n";
-
 uint8_t REMOTE_CONTROL_FLAG = 1; //遥控器控制标志位,1是遥控器控制
 #if BIAS_ADJUST
 void ProjectModeGpioInit(void)
@@ -1550,7 +1546,7 @@ int main(void)
 				Remote_on_flag = 0;
 			}
 			
-		
+		previous_LoRa_time = millis();
 		}
 	   }
 	   
