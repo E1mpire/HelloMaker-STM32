@@ -85,7 +85,7 @@ void drv_uart_init( uint32_t UartBaudRate )
 	*/
 	GPIOInitStruct.GPIO_Pin = MO1_GPIO_PIN;	
 	GPIO_Init(MO1_GPIO_PORT, &GPIOInitStruct);
-	GPIO_ResetBits(MO1_GPIO_PORT, MO2_GPIO_PIN);
+	GPIO_ResetBits(MO1_GPIO_PORT, MO1_GPIO_PIN);
 
 	GPIOInitStruct.GPIO_Pin = MO2_GPIO_PIN;	
 	GPIO_Init(MO2_GPIO_PORT, &GPIOInitStruct);
