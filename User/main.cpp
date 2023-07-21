@@ -1549,14 +1549,6 @@ int main(void)
 		}
 	   }
 	   
-       #if (CONNECT_DETEC)
-       if ((millis() - previous_command_time) >= 250 && REMOTE_CONTROL_FLAG){  
-		/*
-		/PC运动模块运行250ms后刷新，即5次后清空PC_ThrottleControl参数
-		*/
-		      if(b_rc_idle == true)  stop_base();
-         }
-	   #endif
         if((millis() - previous_flysky_time) >= (1000 / IBUS_RATE) && REMOTE_CONTROL_FLAG)
         	{
 			/*
@@ -1572,7 +1564,16 @@ int main(void)
 			  ppm_control();
               #endif
               previous_flysky_time = millis();				  
-		    } 
+		    }
+
+		#if (CONNECT_DETEC)
+		if ((millis() - previous_command_time) >= 250 && REMOTE_CONTROL_FLAG){  
+			/*
+			/PC运动模块运行250ms后刷新，如果遥控器闲置则停车
+			*/
+				if(b_rc_idle == true)  Stop();
+			}
+	   #endif 
 
 
 		if ((millis() - previous_control_time) >= (1000 / COMMAND_RATE)&& !REMOTE_CONTROL_FLAG)
