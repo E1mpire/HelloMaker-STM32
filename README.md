@@ -2,6 +2,13 @@
 
 [HelloMaker履带车技术文档](https://valuable-marimba-bb1.notion.site/8e832e8618ba43e09147a09770253494?v=66e9397ded244612b691f0895ebf113a&pvs=4)
 
+# 履带车配置
+* 主控芯片:STM32F103RCT6
+* 电机:霍尔有刷直流电机 4个
+* 驱动轮: 4个
+* 承重轮：20个
+* LoRa:AS32-TTL-100
+
 # 履带车运行
 
 ## 开机
