@@ -277,7 +277,7 @@ uint8_t RxLength = 0;
 uint8_t Remote_on_flag = 0;
 uint8_t Remote_off_flag = 0;
 
-uint8_t REMOTE_CONTROL_FLAG = 1; //遥控器控制标志位,1是遥控器控制
+uint8_t REMOTE_CONTROL_FLAG = 0; //遥控器控制标志位,1是遥控器控制
 #if BIAS_ADJUST
 void ProjectModeGpioInit(void)
 {
@@ -1329,10 +1329,10 @@ void TaskTimeHandle(void)
 */
 
 // 调节系数定义
-float FHspeed_Scale=0.99025;
-float FLspeed_Scale=0.99045;
-float BHspeed_Scale=0.970;
-float BLspeed_Scale=0.99;
+float FHspeed_Scale=1;
+float FLspeed_Scale=0.98;
+float BHspeed_Scale=2;
+float BLspeed_Scale=1;
 // 高速和低速的基准pwm值
 int highspeed = 200;
 int lowspeed = 100;
@@ -1345,8 +1345,8 @@ int pwm_x2;
 void Highspeed_Forward()
 {
 	// 往右偏，左轮太快
-	pwm_y1 = highspeed*FHspeed_Scale;
-	pwm_y2 = highspeed;
+	pwm_y1 = highspeed;
+	pwm_y2 = highspeed+FHspeed_Scale;
 	motor1.spin(pwm_y1);   //左轮
 	motor2.spin(-pwm_y2);   //右轮，电机接受的值与左轮相反
 
@@ -1365,26 +1365,32 @@ void Lowspeed_Forward()
 void Highspeed_Backrward()
 {
 	// 往左偏，右轮过快
-	pwm_y1 = highspeed;
-	pwm_y2 = highspeed*BHspeed_Scale;
+	pwm_y1 = highspeed+BHspeed_Scale;
+	pwm_y2 = highspeed-BHspeed_Scale-1;
 	motor1.spin(-pwm_y1);   //左轮
 	motor2.spin(pwm_y2);   //右轮，电机接受的值与左轮相反
 }
 
 void Lowspeed_Backrward() //停止
 {
-	pwm_y1 = lowspeed;
-	pwm_y2 = lowspeed*BLspeed_Scale;
-	motor1.spin(pwm_y1);   //左轮
-	motor2.spin(-pwm_y2);   //右轮，电机接受的值与左轮相反
+	pwm_y1 = lowspeed+BLspeed_Scale;
+	pwm_y2 = lowspeed;
+	motor1.spin(-pwm_y1);   //左轮
+	motor2.spin(pwm_y2);   //右轮，电机接受的值与左轮相反
 }
 void Left()
 {
-	Motor_run(-60,80);
+	pwm_x1 = -lowspeed;
+	pwm_x2 = lowspeed;
+	motor1.spin(pwm_x1);   //左轮
+	motor2.spin(-pwm_x2);   //右轮，电机接受的值与左轮相反
 }
 void Right()  //右转
 {
-	Motor_run(60,80);
+	pwm_x1 = lowspeed;
+	pwm_x2 = -lowspeed;
+	motor1.spin(pwm_x1);   //左轮
+	motor2.spin(-pwm_x2);   //右轮，电机接受的值与左轮相反
 }
 void Stop()
 {
@@ -1395,10 +1401,10 @@ void Stop()
 void test_control()
 {
 	//  测试用函数
-	Lowspeed_Forward();
-	delay(5000);
+	Lowspeed_Backrward();
+	delay(3000);
 	Stop();
-	delay(5000);
+	delay(4000);
 
 }
 

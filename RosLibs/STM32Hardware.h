@@ -3,6 +3,7 @@
 
 HardwareSerial SerialPrint(SERIAL2);
 
+HardwareSerial SerialProtocol(SERIAL1);
 #if (IBUS_EN || SBUS_EN)
 HardwareSerial SerialBus(SERIAL3);
 #endif
@@ -18,9 +19,11 @@ class STM32Hardware {
     }
     STM32Hardware()
     {
+      iostream = &SerialProtocol;
       baud_ = 115200;
     }
     STM32Hardware(STM32Hardware& h){
+	  this->iostream = iostream;
       this->baud_ = h.baud_;
     }
 
