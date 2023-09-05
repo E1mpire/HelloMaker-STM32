@@ -269,15 +269,15 @@ int target_pwmy = 0;
 bool moderate_flag=false; //刹车减速是否完成，可以开始停车
 
 // LoRa通信模块变量
-uint8_t Remote_on[8] = {'o','n','R','e','m','o','t','e'};  //接受onRemote以打开遥控模式
-uint8_t Remote_off[8] = {'f','f','R','e','m','o','t','e'};  //接受ffRemoteof以打开遥控模式 
+uint8_t Remote_on[8] = {'1','2','3','4','5','6','7','8'};  //接受onRemote以打开遥控模式
+uint8_t Remote_off[8] = {'8','7','6','5','4','3','2','1'};  //接受ffRemoteof以打开遥控模式 
 uint8_t LoRa_buffer[100] = {0};
 uint8_t RxLength = 0;
 // 用来表示信息状态
 uint8_t Remote_on_flag = 0;
 uint8_t Remote_off_flag = 0;
 
-uint8_t REMOTE_CONTROL_FLAG = 0; //遥控器控制标志位,1是遥控器控制
+uint8_t REMOTE_CONTROL_FLAG = 1; //遥控器控制标志位,1是遥控器控制
 #if BIAS_ADJUST
 void ProjectModeGpioInit(void)
 {
@@ -1077,7 +1077,7 @@ void CtrModeShow(void)
    OLED_ShowString(0,0, "IBUS");
    #elif (SBUS_EN)
    if(REMOTE_CONTROL_FLAG)  OLED_ShowString(0,0, "SBUS"); //遥控器控制
-   else OLED_ShowString(0,0, "STM");   // 非遥控器控制
+   //else OLED_ShowString(0,0, "STM");   // 非遥控器控制
    #elif PWM_EN
    OLED_ShowString(0,0, "PWM");
    #elif PPM_EN
@@ -1332,7 +1332,7 @@ void TaskTimeHandle(void)
 float FHspeed_Scale=1;
 float FLspeed_Scale=0.98;
 float BHspeed_Scale=2;
-float BLspeed_Scale=1;
+float BLspeed_Scale=2;
 // 高速和低速的基准pwm值
 int highspeed = 200;
 int lowspeed = 100;
@@ -1374,7 +1374,7 @@ void Highspeed_Backrward()
 void Lowspeed_Backrward() //停止
 {
 	pwm_y1 = lowspeed+BLspeed_Scale;
-	pwm_y2 = lowspeed;
+	pwm_y2 = lowspeed-BLspeed_Scale;
 	motor1.spin(-pwm_y1);   //左轮
 	motor2.spin(pwm_y2);   //右轮，电机接受的值与左轮相反
 }
@@ -1402,7 +1402,7 @@ void test_control()
 {
 	//  测试用函数
 	Lowspeed_Backrward();
-	delay(3000);
+	delay(5000);
 	Stop();
 	delay(4000);
 
@@ -1524,9 +1524,10 @@ int main(void)
 		*LoRa通信模块，用来接收传输的控制信息
 		*/
 		RxLength = drv_uart_rx_bytes(LoRa_buffer);
-		if (RxLength =! 0)
+		if (RxLength != 0)
 		{
-			drv_uart_tx_bytes((uint8_t *)LoRa_buffer, RxLength);
+			drv_uart_tx_bytes((uint8_t *)LoRa_buffer, 64);
+			
 			for(int i=0; i<8; i++)	
 			{	
 				// 如果不是某条信息，那么符号位变为1，不再比较
@@ -1555,7 +1556,7 @@ int main(void)
 		}
 	   }
 	   
-        if((millis() - previous_flysky_time) >= (1000 / IBUS_RATE) && REMOTE_CONTROL_FLAG)
+        if(((millis() - previous_flysky_time) >= 1000 / IBUS_RATE) && REMOTE_CONTROL_FLAG)
         	{
 			/*
 			*遥控器模块，每1000/40=25ms执行一次，运行遥控器控制
