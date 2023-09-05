@@ -273,6 +273,9 @@ uint8_t Remote_on[8] = {'1','2','3','4','5','6','7','8'};  //接受onRemote以�
 uint8_t Remote_off[8] = {'8','7','6','5','4','3','2','1'};  //接受ffRemoteof以打开遥控模式 
 uint8_t LoRa_buffer[100] = {0};
 uint8_t RxLength = 0;
+char *Remote_message = "Remote Control activiate!";
+char *Self_message = "Self Control activate!";
+char *error_message = "command in the wrong format!";
 // 用来表示信息状态
 uint8_t Remote_on_flag = 0;
 uint8_t Remote_off_flag = 0;
@@ -1342,70 +1345,71 @@ int pwm_y2;
 int pwm_x1;
 int pwm_x2;
 	
-void Highspeed_Forward()
+void Highspeed_Forward(void)
 {
 	// 往右偏，左轮太快
 	pwm_y1 = highspeed;
 	pwm_y2 = highspeed+FHspeed_Scale;
 	motor1.spin(pwm_y1);   //左轮
 	motor2.spin(-pwm_y2);   //右轮，电机接受的值与左轮相反
-
+	delay_us(100);
 }
 		
 
-void Lowspeed_Forward()
+void Lowspeed_Forward(void)
 {
 	//往右偏，左轮太快
 	pwm_y1 = lowspeed*FLspeed_Scale;
 	pwm_y2 = lowspeed;
 	motor1.spin(pwm_y1);   //左轮
 	motor2.spin(-pwm_y2);   //右轮，电机接受的值与左轮相反
-
+	delay_us(100);
 }
-void Highspeed_Backrward()
+void Highspeed_Backrward(void)
 {
 	// 往左偏，右轮过快
 	pwm_y1 = highspeed+BHspeed_Scale;
 	pwm_y2 = highspeed-BHspeed_Scale-1;
 	motor1.spin(-pwm_y1);   //左轮
 	motor2.spin(pwm_y2);   //右轮，电机接受的值与左轮相反
+	delay_us(100);
 }
 
-void Lowspeed_Backrward() //停止
+void Lowspeed_Backrward(void) //停止
 {
 	pwm_y1 = lowspeed+BLspeed_Scale;
 	pwm_y2 = lowspeed-BLspeed_Scale;
 	motor1.spin(-pwm_y1);   //左轮
 	motor2.spin(pwm_y2);   //右轮，电机接受的值与左轮相反
+	delay_us(100);
 }
-void Left()
+void Left(void)
 {
 	pwm_x1 = -lowspeed;
 	pwm_x2 = lowspeed;
 	motor1.spin(pwm_x1);   //左轮
 	motor2.spin(-pwm_x2);   //右轮，电机接受的值与左轮相反
+	delay_us(100);
 }
-void Right()  //右转
+void Right(void)  //右转
 {
 	pwm_x1 = lowspeed;
 	pwm_x2 = -lowspeed;
 	motor1.spin(pwm_x1);   //左轮
 	motor2.spin(-pwm_x2);   //右轮，电机接受的值与左轮相反
+	delay_us(100);
 }
-void Stop()
+void Stop(void)
 {
 	motor1.spin(0);
 	motor2.spin(0);
+	delay_us(100);
 }
-	
-void test_control()
+
+void test_control(void)
 {
 	//  测试用函数
-	Lowspeed_Backrward();
-	delay(5000);
-	Stop();
-	delay(4000);
-
+	Left();
 }
 
 
@@ -1526,7 +1530,7 @@ int main(void)
 		RxLength = drv_uart_rx_bytes(LoRa_buffer);
 		if (RxLength != 0)
 		{
-			drv_uart_tx_bytes((uint8_t *)LoRa_buffer, 64);
+			
 			
 			for(int i=0; i<8; i++)	
 			{	
@@ -1537,17 +1541,21 @@ int main(void)
 			}
 			if (Remote_off_flag==1&&Remote_on_flag==1)
 			{
+				drv_uart_tx_bytes((uint8_t *)error_message, 28);
 				Remote_off_flag = 0;
 				Remote_on_flag = 0;
 			}
 			else if (Remote_on_flag==0)
 			{
+				Stop();
+				drv_uart_tx_bytes((uint8_t *)Remote_message, 23);
 				REMOTE_CONTROL_FLAG = 1; //进入遥控模式
-
 				Remote_off_flag = 0; //刷新符号位
 			}
 			else if (Remote_off_flag==0)
 			{
+				Stop();
+				drv_uart_tx_bytes((uint8_t *)Self_message, 22);
 				REMOTE_CONTROL_FLAG = 0;//退出遥控模式
 				Remote_on_flag = 0;
 			}
@@ -1570,24 +1578,17 @@ int main(void)
 			  #elif PPM_EN
 			  ppm_control();
               #endif
+			  #endif
               previous_flysky_time = millis();				  
 		    }
 
 		#if (CONNECT_DETEC)
-		if ((millis() - previous_command_time) >= 250 && REMOTE_CONTROL_FLAG){  
+		if ((millis() - previous_command_time) >= 250 && !REMOTE_CONTROL_FLAG){  
 			/*
 			/PC运动模块运行250ms后刷新，如果遥控器闲置则停车
 			*/
-				if(b_rc_idle == true)  Stop();
-			}
-	   #endif 
 
-
-		if ((millis() - previous_control_time) >= (1000 / COMMAND_RATE)&& !REMOTE_CONTROL_FLAG)
-		{
-			/*
-			*程序控制模块，当不使用遥控器控制时
-			*/
+  
 			test_control();
 			previous_control_time = millis();
 		}
