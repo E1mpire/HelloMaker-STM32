@@ -21,6 +21,9 @@
 #include "Oled.h"
 #include "sonar.h"
 #include "drv_uart.h"
+//#include "ultrasonic.h"
+#include "track.h"
+
  
 
 double required_angular_vel = 0,required_angular_vel_=0;
@@ -115,10 +118,12 @@ FUTABA_SBUS sBus;
 PID motor1_pid(-240, 240, K_P, K_I, K_D);
 PID motor2_pid(-240, 240, K_P, K_I, K_D);
 #if BRUSHLESS || HIGH_POWER_DRIVER_V2
+
 Motor motor1(MOTOR1, 254, 280); // 电机1的Motor类，254是arr 280是psc
 Motor motor2(MOTOR2, 254, 280);
 Motor motor3(MOTOR3, 254, 280);
 Motor motor4(MOTOR4, 254, 280);
+
 #else
 Motor motor1(MOTOR1, 254, 28);
 Motor motor2(MOTOR2, 254, 28);
@@ -273,14 +278,14 @@ uint8_t Remote_on[8] = {'1','2','3','4','5','6','7','8'};  //接受onRemote以�
 uint8_t Remote_off[8] = {'8','7','6','5','4','3','2','1'};  //接受ffRemoteof以打开遥控模式 
 uint8_t LoRa_buffer[100] = {0};
 uint8_t RxLength = 0;
-char *Remote_message = "Remote Control activiate!";
-char *Self_message = "Self Control activate!";
-char *error_message = "command in the wrong format!";
+uint8_t Remote_message[30] =  {'R','e','m','o','t','e',' ','C','o','n','t','r','o','l',' ','a','c','t','i','v','a','t','e'};
+uint8_t Self_message[30] = {'S','e','l','f',' ','C','o','n','t','r','o','l',' ','a','c','t','i','v','a','t','e'};
+uint8_t error_message[30] = {'C','o','m','m','a','n','d','  ',' i','n',' ','w','r','o','n','g',' ','f','o','r','m','a','t'};
 // 用来表示信息状态
 uint8_t Remote_on_flag = 0;
 uint8_t Remote_off_flag = 0;
 
-uint8_t REMOTE_CONTROL_FLAG = 1; //遥控器控制标志位,1是遥控器控制
+uint8_t REMOTE_CONTROL_FLAG = 0; //遥控器控制标志位,1是遥控器控制
 #if BIAS_ADJUST
 void ProjectModeGpioInit(void)
 {
@@ -644,7 +649,7 @@ int Motor_run(int pwm_x,int pwm_y)
     	}
 
 }
-
+/*
 void SwitchGpioInit(void)
 {
    #if 0
@@ -671,6 +676,7 @@ void SwitchGpioInit(void)
 	GPIO_SetBits(GPIOC, GPIO_Pin_15); 
    
 }
+*/
 void Switch(int id ,bool on)
 {
     if(on == TRUE)
@@ -1330,7 +1336,6 @@ void TaskTimeHandle(void)
 ----------------------------------------------------------------------------------
 以下为自己写的函数
 */
-
 // 调节系数定义
 float FHspeed_Scale=1;
 float FLspeed_Scale=0.98;
@@ -1338,13 +1343,16 @@ float BHspeed_Scale=2;
 float BLspeed_Scale=2;
 // 高速和低速的基准pwm值
 int highspeed = 200;
-int lowspeed = 100;
+int lowspeed = 100;  //正常设置为100
+
+u8 Right_Figure=0,Left_Figure=0;  //用于调整车身偏差的姿态
+int bias_time = 50; // 偏离轨道时调整的时间
+int bend_time = 1800; //转弯时间
+uint16_t track = 0; 
 
 int pwm_y1;
 int pwm_y2;
-int pwm_x1;
-int pwm_x2;
-	
+
 void Highspeed_Forward(void)
 {
 	// 往右偏，左轮太快
@@ -1359,8 +1367,10 @@ void Highspeed_Forward(void)
 void Lowspeed_Forward(void)
 {
 	//往右偏，左轮太快
-	pwm_y1 = lowspeed*FLspeed_Scale;
-	pwm_y2 = lowspeed;
+	//pwm_y1 = lowspeed*FLspeed_Scale;
+	//pwm_y2 = lowspeed;
+	pwm_y1 = 70;
+	pwm_y2 = 70;
 	motor1.spin(pwm_y1);   //左轮
 	motor2.spin(-pwm_y2);   //右轮，电机接受的值与左轮相反
 	delay_us(100);
@@ -1385,18 +1395,50 @@ void Lowspeed_Backrward(void) //停止
 }
 void Left(void)
 {
-	pwm_x1 = -lowspeed;
-	pwm_x2 = lowspeed;
-	motor1.spin(pwm_x1);   //左轮
-	motor2.spin(-pwm_x2);   //右轮，电机接受的值与左轮相反
+	pwm_y1 = -lowspeed;
+	pwm_y2 = lowspeed;
+	motor1.spin(pwm_y1);   //左轮
+	motor2.spin(-pwm_y2);   //右轮，电机接受的值与左轮相反
 	delay_us(100);
 }
 void Right(void)  //右转
 {
-	pwm_x1 = lowspeed;
-	pwm_x2 = -lowspeed;
-	motor1.spin(pwm_x1);   //左轮
-	motor2.spin(-pwm_x2);   //右轮，电机接受的值与左轮相反
+	pwm_y1 = lowspeed;
+	pwm_y2 = -lowspeed;
+	motor1.spin(pwm_y1);   //左轮
+	motor2.spin(-pwm_y2);   //右轮，电机接受的值与左轮相反
+	delay_us(100);
+}
+void Forward_Left(void)
+{
+	pwm_y1 = lowspeed;
+	pwm_y2 = -highspeed;
+	motor1.spin(pwm_y1);
+	motor2.spin(pwm_y2);
+	delay_us(100);
+}
+void Forward_Right(void)
+{
+	pwm_y1 = highspeed;
+	pwm_y2 = -lowspeed;
+	motor1.spin(pwm_y1);
+	motor2.spin(pwm_y2);
+	delay_us(100);
+}
+void Backward_Left()
+{
+	pwm_y1 = -lowspeed;
+	pwm_y2 = highspeed;
+	motor1.spin(pwm_y1);
+	motor2.spin(pwm_y2);
+	delay_us(100);
+}
+void Backward_Right(void)
+{
+	pwm_y1 = -highspeed;
+	pwm_y2 = lowspeed;
+	motor1.spin(pwm_y1);
+	motor2.spin(pwm_y2);
 	delay_us(100);
 }
 void Stop(void)
@@ -1409,7 +1451,94 @@ void Stop(void)
 void test_control(void)
 {
 	//  测试用函数
-	Left();
+	UltrasonicWave_StartMeasure();
+	int Distance=(int)distance;
+	OLED_ShowString(0,0,"Snag:");
+	OLED_ShowNumber(0,16,Distance,4,16);
+	OLED_ShowString(0,32,"Trace:");
+	/*
+	if (Distance <=30)
+		{
+			Lowspeed_Backrward();
+		}
+		else
+		{
+			Stop();
+		}
+		*/
+	//更新循迹状态
+	if(TRACK1==0&&TRACK2==0&&TRACK3==1&&TRACK4==0&&TRACK5==0) // 前进
+	{
+		if (Left_Figure)//回正车身位置
+		{
+			Forward_Right();
+			delay(bias_time);
+			Left_Figure = 0;
+		}
+		else if (Right_Figure)
+		{
+			Forward_Left();
+			delay(bias_time);
+			Right_Figure = 0;
+		}
+		
+		
+		Lowspeed_Forward();
+		delay(100);
+	}
+	// TRACK3=1是因为目前中间传感器坏了做出的妥协
+	if (TRACK1==1&&TRACK2==1&&TRACK3==1&&TRACK4==0&&TRACK5==0) // 直角左转
+	{
+		
+		Stop();
+		delay(100);
+		Left();
+		delay(bend_time);
+		Lowspeed_Forward();
+		delay(100);
+
+	}
+	if (TRACK1==0&&TRACK2==0&&TRACK3==1&&TRACK4==1&&TRACK5==1) // 直角右转
+	{
+		
+		Stop();
+		delay(100);
+		Right();
+		delay(bend_time);
+		Lowspeed_Forward();
+		delay(100);
+
+	}
+	if ((TRACK1==0&&TRACK2==0&&TRACK3==1&&TRACK4==1&&TRACK5==0)||(TRACK1==0&&TRACK2==0&&TRACK3==0&&TRACK4==1&&TRACK5==0)) //向右偏移
+	{
+		Forward_Right();
+		delay(bias_time);// 这是个未加检验的值，需要求证是否会影响LoRa模块
+		Lowspeed_Forward();
+		Left_Figure=1; //此时车身左偏
+	}
+	if ((TRACK1==0&&TRACK2==1&&TRACK3==1&&TRACK4==0&&TRACK5==0)||(TRACK1==0&&TRACK2==1&TRACK3==0&&TRACK4==0&&TRACK5==0)) // 向左偏移
+	{
+		Forward_Left();
+		delay(bias_time);
+		Lowspeed_Forward();
+		Right_Figure=1; // 此时车身右偏
+	}
+	if (TRACK1==0&&TRACK2==0&&TRACK3==0&&TRACK4==0&&TRACK5==0) //检测不到黑线
+	{
+		Stop();
+	}
+	
+	//没有检测到黑线则是0,检测到就是1
+	if (TRACK1) OLED_ShowNumber(0,48,1,1,16); else if(!TRACK1) OLED_ShowNumber(0,48,0,1,16);
+	if (TRACK2) OLED_ShowNumber(8,48,2,1,16); else if(!TRACK2) OLED_ShowNumber(8,48,0,1,16);
+	if (TRACK3) OLED_ShowNumber(16,48,3,1,16); else if(!TRACK3) OLED_ShowNumber(16,48,0,1,16);
+	if (TRACK4) OLED_ShowNumber(24,48,4,1,16); else if(!TRACK4) OLED_ShowNumber(24,48,0,1,16);
+	if (TRACK5) OLED_ShowNumber(32,48,5,1,16); else if(!TRACK5) OLED_ShowNumber(32,48,0,1,16);
+	
+	//OLED_ShowNumber(0,48,track,3,16);
+	OLED_Refresh_Gram();
+
+	
 }
 
 
@@ -1431,6 +1560,7 @@ int main(void)
 	uint32_t previous_motorprotec_time = 0;
 	uint32_t previous_control_time = 0;
 	uint32_t previous_battery_debug_time = 0;
+	//uint32_t previous_sonic_time = 0;
 	// 电量不足预告
 	char battery_buffer[]= "The voltage is lower than 11.3V,Please charge! ";
 
@@ -1456,35 +1586,11 @@ int main(void)
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB | RCC_APB2Periph_AFIO,ENABLE);	  
 	//-------JTAG------
 	GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable,ENABLE);
-    #if OLED_EN
-	OLED_Init();
-	OLED_ShowCHinese(0+50,  0, 6,  CNSizeWidth,  CNSizeHeight);
-	OLED_ShowCHinese(18+50, 0, 7,  CNSizeWidth,  CNSizeHeight);
-	OLED_ShowCHinese(36+50, 0, 10, CNSizeWidth,  CNSizeHeight);
-	OLED_ShowCHinese(54+50, 0, 11, CNSizeWidth,  CNSizeHeight);
 
-	OLED_ShowCHinese(0+50,  2, 4,  CNSizeWidth,  CNSizeHeight);
-	OLED_ShowCHinese(18+50, 2, 5,  CNSizeWidth,  CNSizeHeight);
-	OLED_ShowCHinese(36+50, 2, 10, CNSizeWidth,  CNSizeHeight);
-	OLED_ShowCHinese(54+50, 2, 11, CNSizeWidth,  CNSizeHeight);
-	
-    OLED_ShowCHinese(0+50,  4, 8,  CNSizeWidth,  CNSizeHeight);
-	OLED_ShowCHinese(18+50, 4, 9,  CNSizeWidth,  CNSizeHeight);
-	OLED_ShowCHinese(36+50, 4, 10, CNSizeWidth,  CNSizeHeight);
-	OLED_ShowCHinese(54+50, 4, 11, CNSizeWidth,  CNSizeHeight);
-    #if TILT_DETEC
-		OLED_ShowCHinese(0+50,  6, 12,  CNSizeWidth,  CNSizeHeight);
-		OLED_ShowCHinese(18+50, 6, 13,  CNSizeWidth,  CNSizeHeight);
-		OLED_ShowCHinese(36+50, 6, 14, CNSizeWidth,  CNSizeHeight);
-		OLED_ShowCHinese(54+50, 6, 15, CNSizeWidth,  CNSizeHeight);
-	#else
-	    OLED_ShowCHinese(0+50,  6, 16,  CNSizeWidth,  CNSizeHeight);
-		OLED_ShowCHinese(18+50, 6, 17,  CNSizeWidth,  CNSizeHeight);
-		OLED_ShowCHinese(36+50, 6, 18, CNSizeWidth,  CNSizeHeight);
-		OLED_ShowCHinese(54+50, 6, 19, CNSizeWidth,  CNSizeHeight);
-		CtrModeShow();
+	#if OLED_EN
+	OLED_Init();
 	#endif
-	#endif
+
 	#if SERVO_EN
 	InitPWM();
     InitTimer6();
@@ -1494,6 +1600,8 @@ int main(void)
 	SerialPrint.begin(115200);
 	dlProtocol.begin();
 	drv_uart_init(9600);  //LoRa串口初始化
+	sonar_init(65535-1,72-1);  //程序里定死了65535，如果要修改，请在sonar的TIM8IRQ里把65535一并改掉
+	Track_Init(); //循迹模块初始化
 
     #if IBUS_EN
     SerialBus.begin(115200);
@@ -1527,7 +1635,7 @@ int main(void)
 		/*
 		*LoRa通信模块，用来接收传输的控制信息
 		*/
-		RxLength = drv_uart_rx_bytes(LoRa_buffer);
+		RxLength = drv_uart_rx_bytes(LoRa_buffer); //接收信息
 		if (RxLength != 0)
 		{
 			
@@ -1563,7 +1671,15 @@ int main(void)
 		previous_LoRa_time = millis();
 		}
 	   }
-	   
+
+	   #if CONNECT_DETEC
+       if ((millis() - previous_command_time) >= 250){
+
+		      if(b_rc_idle == true)  stop_base();
+         }
+	   #endif
+
+
         if(((millis() - previous_flysky_time) >= 1000 / IBUS_RATE) && REMOTE_CONTROL_FLAG)
         	{
 			/*
@@ -1583,14 +1699,13 @@ int main(void)
 		    }
 
 		#if (CONNECT_DETEC)
-		if ((millis() - previous_command_time) >= 250 && !REMOTE_CONTROL_FLAG){  
+		if ((millis() - previous_command_time) >= 50 && !REMOTE_CONTROL_FLAG){  
 			/*
-			/PC运动模块运行250ms后刷新，如果遥控器闲置则停车
+			/PC运动模块运行50ms后刷新，如果遥控器闲置则停车
 			*/
-
-  
 			test_control();
-			previous_control_time = millis();
+			
+			previous_command_time = millis();
 		}
 
 
@@ -1625,13 +1740,47 @@ int main(void)
            }
 		 #endif
 
+		
+
 		 #if OLED_EN
 		 
 		 if((millis() - previous_oled_time) >= (1000 / OLED_RATE)&& REMOTE_CONTROL_FLAG){
 			/*
 			*OLED模块，，遥控器使用时启动每1000/50=20ms在屏幕上更新运动数据
 			*/ 
-			    static int count ,fresh,num;
+			    static int count ,fresh,num=0;
+				//打印汉字,以后可能会改到切换模式的那个地方
+				if (num++ >= 100)
+				{
+					num=0;
+					OLED_ShowCHinese(0+50,  0, 6,  CNSizeWidth,  CNSizeHeight);
+					OLED_ShowCHinese(18+50, 0, 7,  CNSizeWidth,  CNSizeHeight);
+					OLED_ShowCHinese(36+50, 0, 10, CNSizeWidth,  CNSizeHeight);
+					OLED_ShowCHinese(54+50, 0, 11, CNSizeWidth,  CNSizeHeight);
+
+					OLED_ShowCHinese(0+50,  2, 4,  CNSizeWidth,  CNSizeHeight);
+					OLED_ShowCHinese(18+50, 2, 5,  CNSizeWidth,  CNSizeHeight);
+					OLED_ShowCHinese(36+50, 2, 10, CNSizeWidth,  CNSizeHeight);
+					OLED_ShowCHinese(54+50, 2, 11, CNSizeWidth,  CNSizeHeight);
+					
+					OLED_ShowCHinese(0+50,  4, 8,  CNSizeWidth,  CNSizeHeight);
+					OLED_ShowCHinese(18+50, 4, 9,  CNSizeWidth,  CNSizeHeight);
+					OLED_ShowCHinese(36+50, 4, 10, CNSizeWidth,  CNSizeHeight);
+					OLED_ShowCHinese(54+50, 4, 11, CNSizeWidth,  CNSizeHeight);
+					#if TILT_DETEC
+						OLED_ShowCHinese(0+50,  6, 12,  CNSizeWidth,  CNSizeHeight);
+						OLED_ShowCHinese(18+50, 6, 13,  CNSizeWidth,  CNSizeHeight);
+						OLED_ShowCHinese(36+50, 6, 14, CNSizeWidth,  CNSizeHeight);
+						OLED_ShowCHinese(54+50, 6, 15, CNSizeWidth,  CNSizeHeight);
+					#else
+						OLED_ShowCHinese(0+50,  6, 16,  CNSizeWidth,  CNSizeHeight);
+						OLED_ShowCHinese(18+50, 6, 17,  CNSizeWidth,  CNSizeHeight);
+						OLED_ShowCHinese(36+50, 6, 18, CNSizeWidth,  CNSizeHeight);
+						OLED_ShowCHinese(54+50, 6, 19, CNSizeWidth,  CNSizeHeight);
+						CtrModeShow();
+					#endif
+				}
+				
                 if(fresh++ >= 20)
 				  {
 			          fresh = 0;
@@ -1645,6 +1794,9 @@ int main(void)
 					  #endif
 			          OLED_Refresh_Gram();
 				  }
+
+
+
 				 previous_oled_time = millis();
 			
 			
@@ -1708,7 +1860,8 @@ int main(void)
 		  #endif
 		
 
-
+		
+		
          
 	 }
     #endif

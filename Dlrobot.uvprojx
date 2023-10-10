@@ -327,7 +327,7 @@
             <wLevel>1</wLevel>
             <uThumb>0</uThumb>
             <uSurpInc>0</uSurpInc>
-            <uC99>0</uC99>
+            <uC99>1</uC99>
             <uGnu>0</uGnu>
             <useXO>0</useXO>
             <v6Lang>3</v6Lang>
@@ -546,11 +546,6 @@
               <FilePath>.\Driver\PID.cpp</FilePath>
             </File>
             <File>
-              <FileName>sonar.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Driver\sonar.c</FilePath>
-            </File>
-            <File>
               <FileName>servo.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>.\Driver\servo.cpp</FilePath>
@@ -606,9 +601,19 @@
               <FilePath>.\Driver\drv_uart.cpp</FilePath>
             </File>
             <File>
-              <FileName>drv_uart.h</FileName>
+              <FileName>sonar.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\Driver\sonar.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>track.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\Driver\track.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>track.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\Driver\drv_uart.h</FilePath>
+              <FilePath>.\Driver\track.h</FilePath>
             </File>
           </Files>
         </Group>

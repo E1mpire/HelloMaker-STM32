@@ -68,14 +68,8 @@ void drv_uart_init( uint32_t UartBaudRate )
 	//使能外设
 	//模式设置
 	GPIO_InitTypeDef GPIOInitStruct;
-	RCC_APB2PeriphClockCmd(AUX_GPIO_CLK | MO1_GPIO_CLK | MO2_GPIO_CLK, ENABLE);
+	RCC_APB2PeriphClockCmd(MO1_GPIO_CLK | MO2_GPIO_CLK, ENABLE);
 
-	// 不需要知道工作状态，直接接地
-	GPIOInitStruct.GPIO_Mode =  GPIO_Mode_Out_PP;
-	GPIOInitStruct.GPIO_Speed = GPIO_Speed_2MHz;	
-	GPIOInitStruct.GPIO_Pin = AUX_GPIO_PIN;
-	GPIO_Init(AUX_GPIO_PORT, &GPIOInitStruct);
-	GPIO_ResetBits(AUX_GPIO_PORT, AUX_GPIO_PIN);
 
 	/*
 	*MO1 0 MO2 0 一般工作状态

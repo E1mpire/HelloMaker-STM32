@@ -3,9 +3,10 @@ extern "C" {
 #endif
 
 #include "sonar.h"
+#include "oled.h"
 
-u8  TIM8CH4_CAPTURE_STA=0; 
-u16	TIM8CH4_CAPTURE_VAL; 
+u8  TIM8_CH4_CAPTURE_STA=0; 
+u16	TIM8_CH4_CAPTURE_VAL; 
 u16 TIM8CH4_CAPTURE_UPVAL;
 u16 TIM8CH4_CAPTURE_DOWNVAL;
 float distance;
@@ -60,29 +61,29 @@ void sonar_init(uint32_t _arr, uint32_t _psc)
 void UltrasonicWave_StartMeasure(void)
 {
     GPIO_SetBits(DL_TRIG_GPIO_PORT,DL_TRIG_PIN);  
-    delay_us(20);		                      
+    delay_us(15);		                      
     GPIO_ResetBits(DL_TRIG_GPIO_PORT,DL_TRIG_PIN);
 }
 
 void TIM8_CC_IRQHandler(void)
 {
-    if((TIM8CH4_CAPTURE_STA&0X80)==0){
-		if(TIM_GetITStatus(DL_SONAR_TIM, TIM_IT_CC4) != RESET){	
-            TIM_ClearITPendingBit(DL_SONAR_TIM, TIM_IT_CC4);	
-			if(TIM8CH4_CAPTURE_STA&0X40){ 
-                TIM8CH4_CAPTURE_DOWNVAL = TIM_GetCapture4(DL_SONAR_TIM);
-                if(TIM8CH4_CAPTURE_DOWNVAL <  TIM8CH4_CAPTURE_UPVAL){
+    if((TIM8_CH4_CAPTURE_STA&0X80)==0){  //还未成功捕获一个高电平时段
+		 if(TIM_GetITStatus(DL_SONAR_TIM, TIM_IT_CC4) != RESET){	 //TIM8捕获更新
+            TIM_ClearITPendingBit(DL_SONAR_TIM, TIM_IT_CC4);	//清除CC中断标识
+			if(TIM8_CH4_CAPTURE_STA&0X40){   //捕获低电平
+                TIM8CH4_CAPTURE_DOWNVAL = TIM_GetCapture4(DL_SONAR_TIM);  
+                if(TIM8CH4_CAPTURE_DOWNVAL <  TIM8CH4_CAPTURE_UPVAL){ //如果低电平小于高电平，说明计数器溢出
                     tim8_T4 = 65535;
                 }else{
                     tim8_T4 = 0;
                 }
-                temp=TIM8CH4_CAPTURE_DOWNVAL - TIM8CH4_CAPTURE_UPVAL+ tim8_T4;		 
+				temp=TIM8CH4_CAPTURE_DOWNVAL - TIM8CH4_CAPTURE_UPVAL+ tim8_T4;
                 distance = temp / 58.0;            
-                TIM8CH4_CAPTURE_STA=0;               
+                TIM8_CH4_CAPTURE_STA=0;               
                 TIM_OC4PolarityConfig(DL_SONAR_TIM,TIM_ICPolarity_Rising);  
-			}else{
+			}else{ //捕获高电平
                 TIM8CH4_CAPTURE_UPVAL = TIM_GetCapture4(DL_SONAR_TIM);		 
-				TIM8CH4_CAPTURE_STA|=0X40;       
+				TIM8_CH4_CAPTURE_STA|=0X40;       
 	 			TIM_OC4PolarityConfig(DL_SONAR_TIM,TIM_ICPolarity_Falling);		 
 			}		    
 		}			     	    					   
