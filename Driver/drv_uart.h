@@ -24,18 +24,18 @@
 
 
 //串口硬件定义
-#define UART_PORT					USART1
-#define UART_PORT_CLK				RCC_APB2Periph_USART1
-#define UART_PORT_AF				GPIO_Remap_USART1
+#define UART_PORT					USART2
+#define UART_PORT_CLK				RCC_APB1Periph_USART2
+#define UART_PORT_AF				GPIO_Remap_USART2
 
 //串口引脚定义
 #define UART_TX_GPIO_PORT			GPIOA
 #define UART_TX_GPIO_CLK			RCC_APB2Periph_GPIOA
-#define UART_TX_GPIO_PIN			GPIO_Pin_9
+#define UART_TX_GPIO_PIN			GPIO_Pin_2
 
 #define UART_RX_GPIO_PORT			GPIOA
 #define UART_RX_GPIO_CLK			RCC_APB2Periph_GPIOA
-#define UART_RX_GPIO_PIN			GPIO_Pin_10
+#define UART_RX_GPIO_PIN			GPIO_Pin_3
 
 
 //模式引脚定义
@@ -54,6 +54,4 @@ uint8_t drv_uart_rx_bytes( uint8_t* RxBuffer );
 
 
 #endif
-
-
 

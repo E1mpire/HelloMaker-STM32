@@ -285,7 +285,7 @@ uint8_t error_message[30] = {'C','o','m','m','a','n','d','  ',' i','n',' ','w','
 uint8_t Remote_on_flag = 0;
 uint8_t Remote_off_flag = 0;
 
-uint8_t REMOTE_CONTROL_FLAG = 0; //遥控器控制标志位,1是遥控器控制
+uint8_t REMOTE_CONTROL_FLAG = 1; //遥控器控制标志位,1是遥控器控制
 #if BIAS_ADJUST
 void ProjectModeGpioInit(void)
 {
@@ -730,7 +730,7 @@ void RC_Common(void)
 	#endif
      if(Goal_PSS_RX_VALUE > 240) Goal_PSS_RX_VALUE = 240;
      else if(Goal_PSS_RX_VALUE < -240) Goal_PSS_RX_VALUE = -240;
-     if(Goal_PSS_RY_VALUE > 240) Goal_PSS_RY_VALUE = 240;
+     if(Goal_PSS_RY_VALUE > 250) Goal_PSS_RY_VALUE = 250;
      else if(Goal_PSS_RY_VALUE < -240) Goal_PSS_RY_VALUE = -240;
 	#if IBUS_EN || PWM_EN
     if(PulsewidthY > IBUS_MID - STICK_BIAS &&  PulsewidthY < IBUS_MID + STICK_BIAS && PulsewidthX > IBUS_MID - STICK_BIAS &&  PulsewidthX < IBUS_MID + STICK_BIAS)
@@ -1346,9 +1346,12 @@ int highspeed = 200;
 int lowspeed = 100;  //正常设置为100
 
 u8 Right_Figure=0,Left_Figure=0;  //用于调整车身偏差的姿态
-int bias_time = 50; // 偏离轨道时调整的时间
-int bend_time = 1800; //转弯时间
-uint16_t track = 0; 
+int bias_time = 75; // 偏离轨道时调整的时间
+int bend_time = 1400; //转弯时间
+uint16_t track1 = 0; //中间循迹模块
+#if SECOND_TRACK
+uint16_t track2 = 0;
+#endif
 
 int pwm_y1;
 int pwm_y2;
@@ -1453,6 +1456,8 @@ void test_control(void)
 	//  测试用函数
 	UltrasonicWave_StartMeasure();
 	int Distance=(int)distance;
+
+	
 	OLED_ShowString(0,0,"Snag:");
 	OLED_ShowNumber(0,16,Distance,4,16);
 	OLED_ShowString(0,32,"Trace:");
@@ -1467,7 +1472,12 @@ void test_control(void)
 		}
 		*/
 	//更新循迹状态
-	if(TRACK1==0&&TRACK2==0&&TRACK3==1&&TRACK4==0&&TRACK5==0) // 前进
+	track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
+	#if SECOND_TRACK
+	track2 = TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
+	#endif
+	//if(TRACK1==0&&TRACK2==0&&TRACK3==1&&TRACK4==0&&TRACK5==0) 
+	if(track1 == 100)  // 前进   5个传感器视为十进制不同位
 	{
 		if (Left_Figure)//回正车身位置
 		{
@@ -1484,10 +1494,10 @@ void test_control(void)
 		
 		
 		Lowspeed_Forward();
-		delay(100);
 	}
 	// TRACK3=1是因为目前中间传感器坏了做出的妥协
-	if (TRACK1==1&&TRACK2==1&&TRACK3==1&&TRACK4==0&&TRACK5==0) // 直角左转
+	//if (TRACK1==1&&TRACK2==1&&TRACK3==1&&TRACK4==0&&TRACK5==0) // 直角左转
+	if(track1 == 111)  // 直角左转
 	{
 		
 		Stop();
@@ -1498,7 +1508,8 @@ void test_control(void)
 		delay(100);
 
 	}
-	if (TRACK1==0&&TRACK2==0&&TRACK3==1&&TRACK4==1&&TRACK5==1) // 直角右转
+	//if (TRACK1==0&&TRACK2==0&&TRACK3==1&&TRACK4==1&&TRACK5==1) // 直角右转
+	if(track1 == 11100) //直角右转
 	{
 		
 		Stop();
@@ -1509,33 +1520,64 @@ void test_control(void)
 		delay(100);
 
 	}
-	if ((TRACK1==0&&TRACK2==0&&TRACK3==1&&TRACK4==1&&TRACK5==0)||(TRACK1==0&&TRACK2==0&&TRACK3==0&&TRACK4==1&&TRACK5==0)) //向右偏移
+	//if ((TRACK1==0&&TRACK2==0&&TRACK3==1&&TRACK4==1&&TRACK5==0)||(TRACK1==0&&TRACK2==0&&TRACK3==0&&TRACK4==1&&TRACK5==0)) //向右偏移
+	if(track1 == (01100||01000)) //向右偏移
 	{
-		Forward_Right();
+		Right();
 		delay(bias_time);// 这是个未加检验的值，需要求证是否会影响LoRa模块
 		Lowspeed_Forward();
 		Left_Figure=1; //此时车身左偏
 	}
-	if ((TRACK1==0&&TRACK2==1&&TRACK3==1&&TRACK4==0&&TRACK5==0)||(TRACK1==0&&TRACK2==1&TRACK3==0&&TRACK4==0&&TRACK5==0)) // 向左偏移
+	//if ((TRACK1==0&&TRACK2==1&&TRACK3==1&&TRACK4==0&&TRACK5==0)||(TRACK1==0&&TRACK2==1&TRACK3==0&&TRACK4==0&&TRACK5==0)) // 向左偏移
+	if(track1 == (00110||00010)) //向左偏移
 	{
-		Forward_Left();
+		Left();
 		delay(bias_time);
 		Lowspeed_Forward();
 		Right_Figure=1; // 此时车身右偏
 	}
-	if (TRACK1==0&&TRACK2==0&&TRACK3==0&&TRACK4==0&&TRACK5==0) //检测不到黑线
+	//if (TRACK1==0&&TRACK2==0&&TRACK3==0&&TRACK4==0&&TRACK5==0) //检测不到黑线
+	#if SECOND_TRACK
+	if(track1==0&&track2==(01100||01000) ) // 线卡在右边了
+	{
+		Forward_Right();
+		delay(70);
+		Lowspeed_Forward();//继续前进
+	}
+	if (track1==0&&track2==(00110||00010))//线卡在左边了
+	{
+		Forward_Left();
+		delay(70);
+		Lowspeed_Forward();//继续前进
+	}
+	if (track1==0&&track2 == 00100)
+	{
+		Lowspeed_Forward();
+	}
+	
+	if(track1 == 0&&track2 == 0)
+	{
+		Stop();
+	}
+	#else
+	if(track1 == 0)  //检测不到黑线，停车
 	{
 		Stop();
 	}
 	
+	#endif
+
 	//没有检测到黑线则是0,检测到就是1
+	
 	if (TRACK1) OLED_ShowNumber(0,48,1,1,16); else if(!TRACK1) OLED_ShowNumber(0,48,0,1,16);
 	if (TRACK2) OLED_ShowNumber(8,48,2,1,16); else if(!TRACK2) OLED_ShowNumber(8,48,0,1,16);
 	if (TRACK3) OLED_ShowNumber(16,48,3,1,16); else if(!TRACK3) OLED_ShowNumber(16,48,0,1,16);
 	if (TRACK4) OLED_ShowNumber(24,48,4,1,16); else if(!TRACK4) OLED_ShowNumber(24,48,0,1,16);
 	if (TRACK5) OLED_ShowNumber(32,48,5,1,16); else if(!TRACK5) OLED_ShowNumber(32,48,0,1,16);
 	
-	//OLED_ShowNumber(0,48,track,3,16);
+
+	
+	//OLED_ShowNumber(0,48,track2,5,16);
 	OLED_Refresh_Gram();
 
 	
@@ -1656,6 +1698,7 @@ int main(void)
 			else if (Remote_on_flag==0)
 			{
 				Stop();
+				OLED_Clear();
 				drv_uart_tx_bytes((uint8_t *)Remote_message, 23);
 				REMOTE_CONTROL_FLAG = 1; //进入遥控模式
 				Remote_off_flag = 0; //刷新符号位
@@ -1663,6 +1706,7 @@ int main(void)
 			else if (Remote_off_flag==0)
 			{
 				Stop();
+				OLED_Clear();
 				drv_uart_tx_bytes((uint8_t *)Self_message, 22);
 				REMOTE_CONTROL_FLAG = 0;//退出遥控模式
 				Remote_on_flag = 0;

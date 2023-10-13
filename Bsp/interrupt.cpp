@@ -26,7 +26,7 @@ void USART1_IRQHandler(void)
 #endif
 }
 */
-
+/*
 void USART2_IRQHandler(void) 
 {
 #ifdef  USE_SERIAL2
@@ -35,7 +35,7 @@ void USART2_IRQHandler(void)
 	    
 #endif
 }
-
+*/
 void USART3_IRQHandler(void) 
 {
 #ifdef  USE_SERIAL3
