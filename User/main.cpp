@@ -108,7 +108,8 @@ u16  DataAddress[2] = {0};
 uint16 f_bias,b_bias=200;
 uint8 data_h,data_l;
 
-#define BIAS_SACLE   0.90
+#define BIAS_SACLE   0.95
+#define MAX_BIAS_SCALE 1
 #endif
 int Pulsewidth_Bias = 1500;
 
@@ -730,7 +731,7 @@ void RC_Common(void)
 	#endif
      if(Goal_PSS_RX_VALUE > 240) Goal_PSS_RX_VALUE = 240;
      else if(Goal_PSS_RX_VALUE < -240) Goal_PSS_RX_VALUE = -240;
-     if(Goal_PSS_RY_VALUE > 250) Goal_PSS_RY_VALUE = 250;
+     if(Goal_PSS_RY_VALUE > 240) Goal_PSS_RY_VALUE = 240;
      else if(Goal_PSS_RY_VALUE < -240) Goal_PSS_RY_VALUE = -240;
 	#if IBUS_EN || PWM_EN
     if(PulsewidthY > IBUS_MID - STICK_BIAS &&  PulsewidthY < IBUS_MID + STICK_BIAS && PulsewidthX > IBUS_MID - STICK_BIAS &&  PulsewidthX < IBUS_MID + STICK_BIAS)
@@ -1100,6 +1101,7 @@ void CtrModeShow(void)
 #if BIAS_ADJUST 
 void BiasAdjst(void)
 {  
+	//遥控器往上摁是往左调，往下摁往右调  听到长响说明跳到上/下限了 听到特别响的一声说明调到中间了
    if(FrontAdjust == 1){
 	 	   #if IBUS_EN
 	       if(Pulsewidth_Bias > 1500)
@@ -1117,13 +1119,13 @@ void BiasAdjst(void)
 			 #if FUTABA
              if(Pulsewidth_Bias > 1000)
 	       	{	   
-	           FR_scale = dl_map(1200-Pulsewidth_Bias,0,200,BIAS_SACLE,1.0) ;
+	           FR_scale = dl_map(1200-Pulsewidth_Bias,0,200,BIAS_SACLE,MAX_BIAS_SCALE) ;
 	           FL_scale = 1.0;
 		    }
 	       else if(Pulsewidth_Bias <= 1000)
 	       	{
 			   FR_scale = 1.0;
-	           FL_scale = dl_map(Pulsewidth_Bias-800,0,200,BIAS_SACLE,1.0);	          
+	           FL_scale = dl_map(Pulsewidth_Bias-800,0,200,BIAS_SACLE,MAX_BIAS_SCALE);	          
 		    }
 		    #elif SIYI || FLYSKY || YUNZHUO
              if(Pulsewidth_Bias > 992)
@@ -1156,13 +1158,13 @@ void BiasAdjst(void)
 			  #if FUTABA
               if(Pulsewidth_Bias > 1000)
 			   {	 
-				 BR_scale = dl_map(1200-Pulsewidth_Bias,0,200,BIAS_SACLE,1.0);
+				 BR_scale = dl_map(1200-Pulsewidth_Bias,0,200,BIAS_SACLE,MAX_BIAS_SCALE);
 				 BL_scale = 1.0;
 			  }
 			 else if(Pulsewidth_Bias <= 1000)
 			  {
 				 BR_scale = 1.0;
-				 BL_scale = dl_map(Pulsewidth_Bias-800,0,200,BIAS_SACLE,1.0);		
+				 BL_scale = dl_map(Pulsewidth_Bias-800,0,200,BIAS_SACLE,MAX_BIAS_SCALE);		
 			  }
 			 #elif SIYI || FLYSKY || YUNZHUO
               if(Pulsewidth_Bias > 992)
@@ -1208,15 +1210,18 @@ void BiasadjustSave(void)
 
 void Bias_check(void)
 {
+	
 	ProjectModeGpioInit();
 	if(IsEnterProjectMode1() == true)
 	   {
 		  FrontAdjust = 1;
+		  OLED_ShowString(0,8 ,"FrontAdjust");
 		  SerialProtocol.putstr("FrontAdjust");	  
 	   }
 	if(IsEnterProjectMode2() == true)
 	   {
 		  BackAdjust = 1; 
+		  OLED_ShowString(0,8,"BackAdjust");
 		  SerialProtocol.putstr("BackAdjust");
 	   }
 	if(FrontAdjust == 0)
@@ -1241,15 +1246,15 @@ void Bias_check(void)
 			 #if FUTABA
 	         if(f_bias > 1200) f_bias = 1000;
 				 else if(f_bias < 800) b_bias = 1000;
-				 if(f_bias > 1000)
+				 if(f_bias > 1000)  //如果f_bia大于1000就是往左偏了，右轮速度要减小
 				  { 	
-					FR_scale = dl_map(1200-f_bias,0,200,BIAS_SACLE,1.0);
+					FR_scale = dl_map(1200-f_bias,0,200,BIAS_SACLE,MAX_BIAS_SCALE);
 					FL_scale = 1.0;
 				  }
 				 else if(f_bias <= 1000)
 				  {
 					FR_scale = 1.0;
-					FL_scale = dl_map(f_bias-800,0,200,BIAS_SACLE,1.0);			   
+					FL_scale = dl_map(f_bias-800,0,200,BIAS_SACLE,MAX_BIAS_SCALE);			   
 				  } 
 			 #elif SIYI || FLYSKY || YUNZHUO
              if(f_bias > 1800) f_bias = 992;
@@ -1293,13 +1298,13 @@ void Bias_check(void)
 			 else if(b_bias < 800) b_bias = 1000;
 			 if(b_bias > 1000)
 			  { 	
-				BR_scale = dl_map(1200-b_bias,0,200,BIAS_SACLE,1.0);
+				BR_scale = dl_map(1200-b_bias,0,200,BIAS_SACLE,MAX_BIAS_SCALE);
 				BL_scale = 1.0;
 			  }
 			 else if(b_bias <= 1000)
 			  {
 				BR_scale = 1.0;
-				BL_scale = dl_map(b_bias-800,0,200,BIAS_SACLE,1.0);	   
+				BL_scale = dl_map(b_bias-800,0,200,BIAS_SACLE,MAX_BIAS_SCALE);	   
 			  } 
 			 #elif SIYI || FLYSKY || YUNZHUO
              if(b_bias > 1800) b_bias = 992;
@@ -1337,22 +1342,27 @@ void TaskTimeHandle(void)
 以下为自己写的函数
 */
 // 调节系数定义
+#define FIGURE_CHECK 1
 float FHspeed_Scale=1;
 float FLspeed_Scale=0.98;
 float BHspeed_Scale=2;
 float BLspeed_Scale=2;
 // 高速和低速的基准pwm值
-int highspeed = 200;
+int highspeed = 150;
 int lowspeed = 100;  //正常设置为100
+int ex_lowspeed = 80;
+int ex_highspeed = 200;
 
-u8 Right_Figure=0,Left_Figure=0;  //用于调整车身偏差的姿态
-int bias_time = 75; // 偏离轨道时调整的时间
-int bend_time = 1400; //转弯时间
-uint16_t track1 = 0; //中间循迹模块
+int Right_Figure=0,Left_Figure=0;  //用于调整车身偏差的姿态
+int bias_time =10; // 偏离轨道时调整的时间
+int bend_time =850; //转弯时间
+int track1 = 0; //中间循迹模块
 #if SECOND_TRACK
-uint16_t track2 = 0;
+int track2 = 0;
 #endif
-
+#if FIGURE_CHECK
+int l_cnt = 0;//记录向左调偏差的时间
+#endif
 int pwm_y1;
 int pwm_y2;
 
@@ -1372,11 +1382,11 @@ void Lowspeed_Forward(void)
 	//往右偏，左轮太快
 	//pwm_y1 = lowspeed*FLspeed_Scale;
 	//pwm_y2 = lowspeed;
-	pwm_y1 = 70;
-	pwm_y2 = 70;
+	pwm_y1 = lowspeed;
+	pwm_y2 = lowspeed;
 	motor1.spin(pwm_y1);   //左轮
 	motor2.spin(-pwm_y2);   //右轮，电机接受的值与左轮相反
-	delay_us(100);
+	delay_us(25);
 }
 void Highspeed_Backrward(void)
 {
@@ -1385,7 +1395,7 @@ void Highspeed_Backrward(void)
 	pwm_y2 = highspeed-BHspeed_Scale-1;
 	motor1.spin(-pwm_y1);   //左轮
 	motor2.spin(pwm_y2);   //右轮，电机接受的值与左轮相反
-	delay_us(100);
+	delay_us(25);
 }
 
 void Lowspeed_Backrward(void) //停止
@@ -1398,16 +1408,16 @@ void Lowspeed_Backrward(void) //停止
 }
 void Left(void)
 {
-	pwm_y1 = -lowspeed;
-	pwm_y2 = lowspeed;
+	pwm_y1 = -highspeed;
+	pwm_y2 = highspeed;
 	motor1.spin(pwm_y1);   //左轮
 	motor2.spin(-pwm_y2);   //右轮，电机接受的值与左轮相反
 	delay_us(100);
 }
 void Right(void)  //右转
 {
-	pwm_y1 = lowspeed;
-	pwm_y2 = -lowspeed;
+	pwm_y1 = highspeed;
+	pwm_y2 = -highspeed;
 	motor1.spin(pwm_y1);   //左轮
 	motor2.spin(-pwm_y2);   //右轮，电机接受的值与左轮相反
 	delay_us(100);
@@ -1415,17 +1425,17 @@ void Right(void)  //右转
 void Forward_Left(void)
 {
 	pwm_y1 = lowspeed;
-	pwm_y2 = -highspeed;
+	pwm_y2 = highspeed;
 	motor1.spin(pwm_y1);
-	motor2.spin(pwm_y2);
+	motor2.spin(-pwm_y2);
 	delay_us(100);
 }
 void Forward_Right(void)
 {
 	pwm_y1 = highspeed;
-	pwm_y2 = -lowspeed;
+	pwm_y2 = lowspeed;
 	motor1.spin(pwm_y1);
-	motor2.spin(pwm_y2);
+	motor2.spin(-pwm_y2);
 	delay_us(100);
 }
 void Backward_Left()
@@ -1458,9 +1468,7 @@ void test_control(void)
 	int Distance=(int)distance;
 
 	
-	OLED_ShowString(0,0,"Snag:");
-	OLED_ShowNumber(0,16,Distance,4,16);
-	OLED_ShowString(0,32,"Trace:");
+	
 	/*
 	if (Distance <=30)
 		{
@@ -1479,106 +1487,112 @@ void test_control(void)
 	//if(TRACK1==0&&TRACK2==0&&TRACK3==1&&TRACK4==0&&TRACK5==0) 
 	if(track1 == 100)  // 前进   5个传感器视为十进制不同位
 	{
-		if (Left_Figure)//回正车身位置
+		#if FIGURE_CHECK
+		if (l_cnt>0)   //往左修正次数多，此时车身左偏
 		{
 			Forward_Right();
 			delay(bias_time);
-			Left_Figure = 0;
-		}
-		else if (Right_Figure)
+			l_cnt--;
+		}else if (l_cnt<0)
 		{
 			Forward_Left();
 			delay(bias_time);
-			Right_Figure = 0;
+			l_cnt++;
 		}
+		#if SECOND_TRACK
+		if (track2 == 100)
+		{
+			l_cnt = 0; //前后的传感器都在中间，认为此时车身是正的
+		}
+		#endif
 		
+		#endif
 		
 		Lowspeed_Forward();
 	}
-	// TRACK3=1是因为目前中间传感器坏了做出的妥协
-	//if (TRACK1==1&&TRACK2==1&&TRACK3==1&&TRACK4==0&&TRACK5==0) // 直角左转
-	if(track1 == 111)  // 直角左转
+	else if((track1 == 111)||(track1 == 1111))  // 直角左转
 	{
 		
 		Stop();
 		delay(100);
 		Left();
 		delay(bend_time);
-		Lowspeed_Forward();
-		delay(100);
+
 
 	}
-	//if (TRACK1==0&&TRACK2==0&&TRACK3==1&&TRACK4==1&&TRACK5==1) // 直角右转
-	if(track1 == 11100) //直角右转
+	else if((track1 == 11100)||(track1 == 11110)) //直角右转
 	{
 		
 		Stop();
 		delay(100);
 		Right();
 		delay(bend_time);
-		Lowspeed_Forward();
-		delay(100);
 
 	}
-	//if ((TRACK1==0&&TRACK2==0&&TRACK3==1&&TRACK4==1&&TRACK5==0)||(TRACK1==0&&TRACK2==0&&TRACK3==0&&TRACK4==1&&TRACK5==0)) //向右偏移
-	if(track1 == (01100||01000)) //向右偏移
+	
+	else if (track1 == 1000)//车右偏
 	{
-		Right();
-		delay(bias_time);// 这是个未加检验的值，需要求证是否会影响LoRa模块
-		Lowspeed_Forward();
-		Left_Figure=1; //此时车身左偏
-	}
-	//if ((TRACK1==0&&TRACK2==1&&TRACK3==1&&TRACK4==0&&TRACK5==0)||(TRACK1==0&&TRACK2==1&TRACK3==0&&TRACK4==0&&TRACK5==0)) // 向左偏移
-	if(track1 == (00110||00010)) //向左偏移
-	{
-		Left();
+		Forward_Right();  
 		delay(bias_time);
 		Lowspeed_Forward();
-		Right_Figure=1; // 此时车身右偏
+		#if FIGURE_CHECK
+		l_cnt--;  //车身向右偏了,相应左偏时间减小
+		#endif
+	}
+	else if(track1 == 10)//车左偏
+	{
+		Forward_Left();  
+		delay(bias_time);
+		Lowspeed_Forward();
+		#if FIGURE_CHECK
+		l_cnt++; //车身向左偏了
+		#endif
 	}
 	//if (TRACK1==0&&TRACK2==0&&TRACK3==0&&TRACK4==0&&TRACK5==0) //检测不到黑线
 	#if SECOND_TRACK
-	if(track1==0&&track2==(01100||01000) ) // 线卡在右边了
+	else if(track1==0&&track2==1000 ) // 线卡在右边了
 	{
 		Forward_Right();
-		delay(70);
+		delay(bias_time);
 		Lowspeed_Forward();//继续前进
+		#if FIGURE_CHECK
+		l_cnt--;
+		#endif
 	}
-	if (track1==0&&track2==(00110||00010))//线卡在左边了
+	else if (track1==0&&track2==10)//线卡在左边了
 	{
 		Forward_Left();
-		delay(70);
+		delay(bias_time);
+		Lowspeed_Forward();//继续前进
+		#if FIGURE_CHECK
+		l_cnt++;
+		#endif
+	}
+	else if (track1==0&&track2==10000)//转弯右出界
+	{
 		Lowspeed_Forward();//继续前进
 	}
-	if (track1==0&&track2 == 00100)
+	else if (track1==0&&track2==1)//转弯左出界
+	{
+		Lowspeed_Forward();//继续前进
+	}
+	else if (track1==0&&track2 == 00100)
 	{
 		Lowspeed_Forward();
 	}
 	
-	if(track1 == 0&&track2 == 0)
+	else if(track1 == 0&&track2 == 0)
 	{
 		Stop();
 	}
 	#else
-	if(track1 == 0)  //检测不到黑线，停车
+	else if(track1 == 0)  //检测不到黑线，停车
 	{
 		Stop();
 	}
-	
 	#endif
 
 	//没有检测到黑线则是0,检测到就是1
-	
-	if (TRACK1) OLED_ShowNumber(0,48,1,1,16); else if(!TRACK1) OLED_ShowNumber(0,48,0,1,16);
-	if (TRACK2) OLED_ShowNumber(8,48,2,1,16); else if(!TRACK2) OLED_ShowNumber(8,48,0,1,16);
-	if (TRACK3) OLED_ShowNumber(16,48,3,1,16); else if(!TRACK3) OLED_ShowNumber(16,48,0,1,16);
-	if (TRACK4) OLED_ShowNumber(24,48,4,1,16); else if(!TRACK4) OLED_ShowNumber(24,48,0,1,16);
-	if (TRACK5) OLED_ShowNumber(32,48,5,1,16); else if(!TRACK5) OLED_ShowNumber(32,48,0,1,16);
-	
-
-	
-	//OLED_ShowNumber(0,48,track2,5,16);
-	OLED_Refresh_Gram();
 
 	
 }
@@ -1743,13 +1757,12 @@ int main(void)
 		    }
 
 		#if (CONNECT_DETEC)
-		if ((millis() - previous_command_time) >= 50 && !REMOTE_CONTROL_FLAG){  
+		if ((millis() - previous_command_time) >= 10 && !REMOTE_CONTROL_FLAG){  
 			/*
-			/PC运动模块运行50ms后刷新，如果遥控器闲置则停车
+			/PC运动模块运行10ms后刷新，如果遥控器闲置则停车
 			*/
 			test_control();
-			
-			previous_command_time = millis();
+
 		}
 
 
@@ -1848,7 +1861,16 @@ int main(void)
 			}
 			else if ((millis() - previous_oled_time) >= (1000 / OLED_RATE)&& !REMOTE_CONTROL_FLAG)
 			{
-				// 脱离遥控器控制时的OLED屏幕，暂且空着
+				OLED_ShowString(0,0,"Snag:");
+				OLED_ShowNumber(0,16,(int)distance,4,16);
+				OLED_ShowString(0,32,"Trace:");
+				if (TRACK1) OLED_ShowNumber(0,48,1,1,16); else if(!TRACK1) OLED_ShowNumber(0,48,0,1,16);
+				if (TRACK2) OLED_ShowNumber(8,48,2,1,16); else if(!TRACK2) OLED_ShowNumber(8,48,0,1,16);
+				if (TRACK3) OLED_ShowNumber(16,48,3,1,16); else if(!TRACK3) OLED_ShowNumber(16,48,0,1,16);
+				if (TRACK4) OLED_ShowNumber(24,48,4,1,16); else if(!TRACK4) OLED_ShowNumber(24,48,0,1,16);
+				if (TRACK5) OLED_ShowNumber(32,48,5,1,16); else if(!TRACK5) OLED_ShowNumber(32,48,0,1,16);
+				//OLED_ShowNumber(0,48,track2,5,16);
+				OLED_Refresh_Gram();
 				previous_oled_time = millis();
 			}
 			
