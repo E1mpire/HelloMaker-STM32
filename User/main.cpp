@@ -1431,7 +1431,7 @@ void Forward_Left(void)
 	pwm_y1 = lowspeed;
 	pwm_y2 = highspeed+10;
 	motor1.spin(pwm_y1);
-	motor2.spin(pwm_y2);
+	motor2.spin(-pwm_y2);
 	delay_us(100);
 }
 void Forward_Right(void)
@@ -1439,7 +1439,7 @@ void Forward_Right(void)
 	pwm_y1 = highspeed+10;
 	pwm_y2 = lowspeed;
 	motor1.spin(pwm_y1);
-	motor2.spin(pwm_y2);
+	motor2.spin(-pwm_y2);
 	delay_us(100);
 }
 void Backward_Left()
@@ -1533,9 +1533,9 @@ void test_control(void)
 		Lowspeed_Forward();
 		delay(100);
 	}
-	else if((track1 == 111)||(track1 == 1111))  // ??????
+	else if((track1 == 111)||(track1 == 1111))  // 左转
 	{
-		if (track2==0)
+		if (track2==0)//正常左右转向时，前端传感器应该感应不到黑线了，如果感应到说明其实时转向后中间传感器还没有走过原来的循迹线
 		{
 			Stop();
 			delay(100);
@@ -1557,9 +1557,9 @@ void test_control(void)
 			Lowspeed_Forward();
 		}
 	}
-	else if((track1 == 11100)||(track1 == 11110)) //??????
+	else if((track1 == 11100)||(track1 == 11110)) //右转
 	{
-		if (track2 == 0)//??????????????��???????????????????????????????????????��????????????????????????
+		if (track2 == 0)
 		{
 			Stop();
 			delay(100);
@@ -1583,9 +1583,9 @@ void test_control(void)
 		}
 	}
 	
-	else if (track1 == 1000)//?????
+	else if (track1 == 1000)//车身左偏
 	{
-		if (track2<100)//????????????????��??
+		if (track2<100)//中间偏左但是车头偏右
 		{
 			Forward_Left();
 		}
@@ -1596,7 +1596,20 @@ void test_control(void)
 			Lowspeed_Forward();
 		}
 	}
-	else if (track1 == 10000)//?????????
+	else if(track1 == 10)//车身右偏
+	{
+		if (track2>100)
+		{
+			Forward_Right();
+		}
+		else
+		{
+			Forward_Left();  
+			delay(bias_time);
+			Lowspeed_Forward();
+		}
+	}
+	else if (track1 == 10000)//车身极度左偏
 	{
 		if ((track2>100)||track2==0)  //偏离，或者前面的传感器已经出去了
 		{
@@ -1618,7 +1631,7 @@ void test_control(void)
 
 
 	}
-	else if (track1 == 1)
+	else if (track1 == 1)//车身极度右偏
 	{
 		if ((track2<100)||track2==0)
 		{			
@@ -1637,35 +1650,22 @@ void test_control(void)
 
 	}
 	
-	else if(track1 == 10)//?????
-	{
-		if (track2>100)
-		{
-			Forward_Right();
-		}
-		else
-		{
-			Forward_Left();  
-			delay(bias_time);
-			Lowspeed_Forward();
-		}
-	}
 	
 	#if SECOND_TRACK
-	else if(track1==0&&track2==1000 ) // ??????????
+	else if(track1==0&&track2==1000 ) //中间由于线窄检测不到，由前端检测方向
 	{
 		Forward_Right();
 		delay(bias_time);
-		Lowspeed_Forward();//???????
+		Lowspeed_Forward();
 		#if FIGURE_CHECK
 		l_cnt--;
 		#endif
 	}
-	else if (track1==0&&track2==10)//??????????
+	else if (track1==0&&track2==10)
 	{
 		Forward_Left();
 		delay(bias_time);
-		Lowspeed_Forward();//???????
+		Lowspeed_Forward();
 		#if FIGURE_CHECK
 		l_cnt++;
 		#endif
@@ -1687,13 +1687,7 @@ void test_control(void)
 	else if (track1==0&&track2 == 100)
 	{
 		Lowspeed_Forward();
-		Right_Figure=1; // 此时车身右偏
 	}
-	if (TRACK1==0&&TRACK2==0&&TRACK3==0&&TRACK4==0&&TRACK5==0) //检测不到黑线
-	{
-		Stop();
-	}
-	
 	
 	else if(track1 == 0&&track2 == 0)
 	{
@@ -1860,16 +1854,15 @@ int main(void)
 		if (RxLength != 0)
 		{
 			
-			
 			for(int i=0; i<8; i++)	
 			{	
-				// ??????????????????????��???1????????
+				// 判断属于哪一个指令
 				if (LoRa_buffer[i]!=Remote_on[i] && Remote_on_flag!= 1)  Remote_on_flag = 1;
 				if (LoRa_buffer[i]!=Remote_off[i] && Remote_off_flag!= 1)  Remote_off_flag = 1;
 				//if (LoRa_buffer[i]!=LR_Adjust[i] && Remote_flag!= 100||110||111) Remote_flag +=100;
 
 			}
-			if (Remote_on_flag==1&&Remote_off_flag==1) //???????????
+			if (Remote_on_flag==1&&Remote_off_flag==1) //错误格式指令
 			{
 				drv_uart_tx_bytes((uint8_t*)error_message, 28);
 				Remote_on_flag=0;
@@ -2040,20 +2033,20 @@ int main(void)
 				OLED_ShowString(0,0,"Snag:");
 				OLED_ShowNumber(0,16,(int)distance,4,16);
 				OLED_ShowString(0,32,"Trace:");
-				
+				/*
 				if (TRACK1) OLED_ShowNumber(0,48,1,1,16); else if(!TRACK1) OLED_ShowNumber(0,48,0,1,16);
 				if (TRACK2) OLED_ShowNumber(8,48,2,1,16); else if(!TRACK2) OLED_ShowNumber(8,48,0,1,16);
 				if (TRACK3) OLED_ShowNumber(16,48,3,1,16); else if(!TRACK3) OLED_ShowNumber(16,48,0,1,16);
 				if (TRACK4) OLED_ShowNumber(24,48,4,1,16); else if(!TRACK4) OLED_ShowNumber(24,48,0,1,16);
 				if (TRACK5) OLED_ShowNumber(32,48,5,1,16); else if(!TRACK5) OLED_ShowNumber(32,48,0,1,16);
+				*/
 				
-				/*
 				if (TRACK6) OLED_ShowNumber(0,48,1,1,16); else if(!TRACK6) OLED_ShowNumber(0,48,0,1,16);
 				if (TRACK7) OLED_ShowNumber(8,48,2,1,16); else if(!TRACK7) OLED_ShowNumber(8,48,0,1,16);
 				if (TRACK8) OLED_ShowNumber(16,48,3,1,16); else if(!TRACK8) OLED_ShowNumber(16,48,0,1,16);
 				if (TRACK9) OLED_ShowNumber(24,48,4,1,16); else if(!TRACK9) OLED_ShowNumber(24,48,0,1,16);
 				if (TRACK10) OLED_ShowNumber(32,48,5,1,16); else if(!TRACK10) OLED_ShowNumber(32,48,0,1,16);
-				*/
+				
 				//OLED_ShowNumber(0,48,track2,5,16);
 				OLED_Refresh_Gram();
 				previous_oled_time = millis();
