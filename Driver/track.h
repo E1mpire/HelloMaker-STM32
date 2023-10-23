@@ -8,8 +8,8 @@
 
 #include "stm32f10x_gpio.h"
 #include "stm32f10x.h"
+#include "control.h"
 
-#define SECOND_TRACK 1
 
 #define OUT1_GPIO_PORT GPIOA
 #define OUT1_GPIO_PIN  GPIO_Pin_1
@@ -34,7 +34,7 @@
 #define OUT5_GPIO_PIN  GPIO_Pin_15
 #define TRACK5 !GPIO_ReadInputDataBit(OUT5_GPIO_PORT,OUT5_GPIO_PIN)
 
-#if SECOND_TRACK
+
 
     #define OUT6_GPIO_PORT GPIOB
     #define OUT6_GPIO_PIN  GPIO_Pin_7
@@ -57,7 +57,7 @@
     #define OUT10_GPIO_PIN  GPIO_Pin_7
     #define TRACK10 !GPIO_ReadInputDataBit(OUT10_GPIO_PORT,OUT10_GPIO_PIN)
 
-#endif
+
 
 void Track_Init(void);
 

@@ -34,16 +34,16 @@ void Track_Init(void)
     TRACK_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_Init(OUT5_GPIO_PORT,&TRACK_InitStructure);
 
-    #if SECOND_TRACK
-        TRACK_InitStructure.GPIO_Pin = OUT6_GPIO_PIN|OUT7_GPIO_PIN|OUT8_GPIO_PIN;
-        TRACK_InitStructure.GPIO_Mode = GPIO_Mode_IPD;
-        TRACK_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-        GPIO_Init(OUT6_GPIO_PORT,&TRACK_InitStructure);
 
-        TRACK_InitStructure.GPIO_Pin = OUT9_GPIO_PIN|OUT10_GPIO_PIN;
-        TRACK_InitStructure.GPIO_Mode = GPIO_Mode_IPD;
-        TRACK_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-        GPIO_Init(OUT9_GPIO_PORT,&TRACK_InitStructure);
-    #endif
+    TRACK_InitStructure.GPIO_Pin = OUT6_GPIO_PIN|OUT7_GPIO_PIN|OUT8_GPIO_PIN;
+    TRACK_InitStructure.GPIO_Mode = GPIO_Mode_IPD;
+    TRACK_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(OUT6_GPIO_PORT,&TRACK_InitStructure);
+
+    TRACK_InitStructure.GPIO_Pin = OUT9_GPIO_PIN|OUT10_GPIO_PIN;
+    TRACK_InitStructure.GPIO_Mode = GPIO_Mode_IPD;
+    TRACK_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(OUT9_GPIO_PORT,&TRACK_InitStructure);
+
 
 }

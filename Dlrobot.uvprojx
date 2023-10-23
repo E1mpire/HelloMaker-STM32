@@ -615,6 +615,11 @@
               <FileType>5</FileType>
               <FilePath>.\Driver\track.h</FilePath>
             </File>
+            <File>
+              <FileName>control.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\Driver\control.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

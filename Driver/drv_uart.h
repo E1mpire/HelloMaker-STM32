@@ -23,6 +23,7 @@
 #include "stm32f10x_usart.h"
 
 
+
 //串口硬件定义
 #define UART_PORT					USART2
 #define UART_PORT_CLK				RCC_APB1Periph_USART2

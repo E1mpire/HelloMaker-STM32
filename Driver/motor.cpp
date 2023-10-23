@@ -53,6 +53,22 @@ const uint32_t  MOTOR_PWM_PORT_CLK[MOTORn] = {DL_MOTOR1_PWM_CLK, DL_MOTOR2_PWM_C
 TIM_TypeDef*    MOTOR_PWM_TIM[MOTORn] = {DL_MOTOR1_PWM_TIM, DL_MOTOR2_PWM_TIM,DL_MOTOR3_PWM_TIM, DL_MOTOR4_PWM_TIM};
 const uint32_t  MOTOR_PWM_TIM_CLK[MOTORn] = {DL_MOTOR1_PWM_TIM_CLK, DL_MOTOR2_PWM_TIM_CLK,DL_MOTOR3_PWM_TIM_CLK, DL_MOTOR4_PWM_TIM_CLK};
 
+//电机定义
+#if BRUSHLESS || HIGH_POWER_DRIVER_V2
+
+Motor motor1(MOTOR1, 254, 280); // 只有1 2号电机的定义有效，分别是arr和psc
+Motor motor2(MOTOR2, 254, 280);
+Motor motor3(MOTOR3, 254, 280);
+Motor motor4(MOTOR4, 254, 280);
+
+#else
+Motor motor1(MOTOR1, 254, 28);
+Motor motor2(MOTOR2, 254, 28);
+Motor motor3(MOTOR3, 254, 28);
+Motor motor4(MOTOR4, 254, 28);
+
+#endif
+
 #endif
 extern bool g_forcestop;
 
@@ -218,3 +234,5 @@ void Motor::spin(int pwm)
 		#endif
 	}
 }
+
+
