@@ -32,8 +32,8 @@ int required_linear_throttle,required_angular_throttle;
 bool PC_start  = false;
 bool PC_ControlServo = false;
 
-// 自定义
-#define ROTATION_CENTRE 0.5   //旋转的中心点   
+// ?????
+#define ROTATION_CENTRE 0.5   //??????????   
 
 
 
@@ -82,7 +82,7 @@ int Uploadvz;
   #define BIAS_ADJUST  0
   #endif
 #endif
-#if LINEAR_ADJUST  //线性控制偏差，因为速度越大，偏差越大,减小量就是关于pwm的线性函数
+#if LINEAR_ADJUST  //?????????????????????????,??��?????????pwm?????????
 float F_Slope = 0.00755;
 float B_Slope = 0.0506;
 float F_Const = 0.0;
@@ -102,14 +102,13 @@ u16  DataAddress[2] = {0};
 
 #define READ_BACK_ADDR   0x08019000  
 #define WRITE_BACK_ADDR  0x08019000
-//#define SIZE sizeof(DataAddress)	 	//���鳤��
-#define SIZE sizeof(DataAddress) / sizeof(u16)	 		  	//���鳤��	
+//#define SIZE sizeof(DataAddress)	 	//?1?7?1?7?1?7?A?1?7?1?7
+#define SIZE sizeof(DataAddress) / sizeof(u16)	 		  	//?1?7?1?7?1?7?A?1?7?1?7	
 
 uint16 f_bias,b_bias=200;
 uint8 data_h,data_l;
 
-#define BIAS_SACLE   0.95
-#define MAX_BIAS_SCALE 1
+#define BIAS_SACLE   0.90
 #endif
 int Pulsewidth_Bias = 1500;
 
@@ -120,7 +119,7 @@ PID motor1_pid(-240, 240, K_P, K_I, K_D);
 PID motor2_pid(-240, 240, K_P, K_I, K_D);
 #if BRUSHLESS || HIGH_POWER_DRIVER_V2
 
-Motor motor1(MOTOR1, 254, 280); // 电机1的Motor类，254是arr 280是psc
+Motor motor1(MOTOR1, 254, 280); // ???1??Motor??254??arr 280??psc
 Motor motor2(MOTOR2, 254, 280);
 Motor motor3(MOTOR3, 254, 280);
 Motor motor4(MOTOR4, 254, 280);
@@ -169,7 +168,7 @@ int PulsewidthX = 0;
 int PulsewidthY = 0;
 int Pulsewidth_PID = 0;
 
-// 以y轴正方向为小车前进方向，以x轴正值为右
+// ??y?????????��???????????x????????
 float Distance_x = 0;
 float Distance_y = 0;
 
@@ -266,27 +265,29 @@ bool Isloop   = false;
 bool IsUnloop = true;
 int s1,s2,s3,s4,time;
 
-// 板载控制模块变量
+// ?????????????
 char movement[16];
 int current_pwmx = 0;
 int current_pwmy = 0;
 int target_pwmx = 0;
 int target_pwmy = 0;
-bool moderate_flag=false; //刹车减速是否完成，可以开始停车
+bool moderate_flag=false; //???????????????????????
 
-// LoRa通信模块变量
-uint8_t Remote_on[8] = {'1','2','3','4','5','6','7','8'};  //接受onRemote以打开遥控模式
-uint8_t Remote_off[8] = {'8','7','6','5','4','3','2','1'};  //接受ffRemoteof以打开遥控模式 
+// LoRa?????????
+uint8_t Remote_on[8] = {'1','2','3','4','5','6','7','8'};  //????onRemote????????
+uint8_t Remote_off[8] = {'8','7','6','5','4','3','2','1'};  //????ffRemoteof???????? 
+uint8_t LR_Adjust[8] = {'4','4','4','4','4','4','4','4'};
 uint8_t LoRa_buffer[100] = {0};
 uint8_t RxLength = 0;
-uint8_t Remote_message[30] =  {'R','e','m','o','t','e',' ','C','o','n','t','r','o','l',' ','a','c','t','i','v','a','t','e'};
-uint8_t Self_message[30] = {'S','e','l','f',' ','C','o','n','t','r','o','l',' ','a','c','t','i','v','a','t','e'};
-uint8_t error_message[30] = {'C','o','m','m','a','n','d','  ',' i','n',' ','w','r','o','n','g',' ','f','o','r','m','a','t'};
-// 用来表示信息状态
+char Remote_message[30] =  {'R','e','m','o','t','e',' ','C','o','n','t','r','o','l',' ','a','c','t','i','v','a','t','e'};
+char Self_message[30] = {'S','e','l','f',' ','C','o','n','t','r','o','l',' ','a','c','t','i','v','a','t','e'};
+char error_message[30] = {'C','o','m','m','a','n','d','  ',' i','n',' ','w','r','o','n','g',' ','f','o','r','m','a','t'};
+// ????????????
 uint8_t Remote_on_flag = 0;
 uint8_t Remote_off_flag = 0;
 
-uint8_t REMOTE_CONTROL_FLAG = 1; //遥控器控制标志位,1是遥控器控制
+
+uint8_t REMOTE_CONTROL_FLAG = 1; //符号位为1则为遥控器模式
 #if BIAS_ADJUST
 void ProjectModeGpioInit(void)
 {
@@ -400,7 +401,7 @@ void getVelocities()
 
 
 
-// 移动函数
+// ???????
 void move_base()
 {
 	req_rpm = kinematics.getRPM(required_linear_vel, 0, required_angular_vel);
@@ -527,10 +528,10 @@ void print_debug()
 }
 
 int rc_idle_times  = 0;
-// 电机启动函数
+// ???????????
 int Motor_run(int pwm_x,int pwm_y)
 {
-	//以主控板那一边为前方，大于0时往右走
+	//??????????????????????0???????
     unsigned int x = abs(pwm_x);
     unsigned short pwm,pwm_l, pwm_b;
     pwm_b = abs(pwm_y);
@@ -585,7 +586,7 @@ int Motor_run(int pwm_x,int pwm_y)
          
    		}
    else{
-		   if( pwm_y > STABLE_NUM_Y)    // 前进
+		   if( pwm_y > STABLE_NUM_Y)    // ???
 		   	 {
 			    
                 #if BIAS_ADJUST
@@ -603,8 +604,8 @@ int Motor_run(int pwm_x,int pwm_y)
 
 
                 #else 
-				int pwm_y0 = pwm_y;   // ����pwm
-				int pwm_y1 = pwm_y;   //*0.95;  ---   �ҵ��pwm
+				int pwm_y0 = pwm_y;   // ?1?7?1?7?1?7?1?7pwm
+				int pwm_y1 = pwm_y;   //*0.95;  ---   ?1?7?0?9?1?7?1?7pwm
 				motor1.spin(pwm_y0);
 				motor2.spin(-pwm_y1); 
 				motor3.spin(pwm_y0);
@@ -614,7 +615,7 @@ int Motor_run(int pwm_x,int pwm_y)
 			    
 				
 		     }
-	       else if(pwm_y < -STABLE_NUM_Y)    // 后退
+	       else if(pwm_y < -STABLE_NUM_Y)    // ????
 		   	   {
 		   	     #if BIAS_ADJUST
 		   	     int pwm_y0 = pwm_y *BL_scale;
@@ -670,7 +671,7 @@ void SwitchGpioInit(void)
     GPIO_InitTypeDef  GPIO_InitStructure;
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_15 | GPIO_Pin_14;//PWM SERVO1 / SERVO2 / SERVO3/ SERVO4
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;		  //�������
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;		  //?1?7?1?7?1?7?1?7?1?7?1?7?1?7
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOC, &GPIO_InitStructure);
 	GPIO_SetBits(GPIOC, GPIO_Pin_14); 
@@ -1002,25 +1003,25 @@ void ibus_control(void)
 #elif PWM_EN
 void pwm_control(void)
 {
-  if(TIM1CH1_CAPTURE_STA&0X80)//�ɹ�������һ�θߵ�ƽ
+  if(TIM1CH1_CAPTURE_STA&0X80)//?1?7?0?6?1?7?1?7?1?7?1?7?1?7?1?7?1?7?0?5?1?7???1?1?1?7?0?9
    {
 	   temp_x=TIM1CH1_CAPTURE_STA&0X3F;
-	   temp_x*=65536; 				   //���ʱ���ܺ�
-	   temp_x+=TIM1CH1_CAPTURE_VAL;	   //�õ��ܵĸߵ�ƽʱ��
+	   temp_x*=65536; 				   //?1?7?1?7?1?7?0?2?1?7?1?7?1?7?1?4?1?7
+	   temp_x+=TIM1CH1_CAPTURE_VAL;	   //?1?7?0?1?1?7?1?7?1?9?0?0?1?1?1?7?0?9?0?2?1?7?1?7
 	   if(temp_x > 2200)  temp_x = 1500;
 	   else if(temp_x < 800)  temp_x = 1500;
 	   PulsewidthX = temp_x;
-	   TIM1CH1_CAPTURE_STA=0;		   //������һ�β���
+	   TIM1CH1_CAPTURE_STA=0;		   //?1?7?1?7?1?7?1?7?1?7?1?7?0?5?1?7???1?7?1?7?1?7
    }
-   if(TIM2CH3_CAPTURE_STA&0X80)//�ɹ�������һ�θߵ�ƽ
+   if(TIM2CH3_CAPTURE_STA&0X80)//?1?7?0?6?1?7?1?7?1?7?1?7?1?7?1?7?1?7?0?5?1?7???1?1?1?7?0?9
    {
 	   temp_y=TIM2CH3_CAPTURE_STA&0X3F;
-	   temp_y*=65536; 				   //���ʱ���ܺ�
-	   temp_y+=TIM2CH3_CAPTURE_VAL;	   //�õ��ܵĸߵ�ƽʱ��
+	   temp_y*=65536; 				   //?1?7?1?7?1?7?0?2?1?7?1?7?1?7?1?4?1?7
+	   temp_y+=TIM2CH3_CAPTURE_VAL;	   //?1?7?0?1?1?7?1?7?1?9?0?0?1?1?1?7?0?9?0?2?1?7?1?7
 	   if(temp_y > 2200)  temp_y = 1500;
 	   else if(temp_y < 800)  temp_y = 1500;
 	   PulsewidthY = temp_y;
-	   TIM2CH3_CAPTURE_STA=0;		   //������һ�β���
+	   TIM2CH3_CAPTURE_STA=0;		   //?1?7?1?7?1?7?1?7?1?7?1?7?0?5?1?7???1?7?1?7?1?7
    }
    if(ConnectCheck())return ;
    if(SignalStableCheck())return ;
@@ -1086,8 +1087,8 @@ void CtrModeShow(void)
    #if IBUS_EN
    OLED_ShowString(0,0, "IBUS");
    #elif (SBUS_EN)
-   if(REMOTE_CONTROL_FLAG)  OLED_ShowString(0,0, "SBUS"); //遥控器控制
-   //else OLED_ShowString(0,0, "STM");   // 非遥控器控制
+   if(REMOTE_CONTROL_FLAG)  OLED_ShowString(0,0, "SBUS"); //?????????
+   //else OLED_ShowString(0,0, "STM");   // ???????????
    #elif PWM_EN
    OLED_ShowString(0,0, "PWM");
    #elif PPM_EN
@@ -1101,7 +1102,6 @@ void CtrModeShow(void)
 #if BIAS_ADJUST 
 void BiasAdjst(void)
 {  
-	//遥控器往上摁是往左调，往下摁往右调  听到长响说明跳到上/下限了 听到特别响的一声说明调到中间了
    if(FrontAdjust == 1){
 	 	   #if IBUS_EN
 	       if(Pulsewidth_Bias > 1500)
@@ -1119,13 +1119,13 @@ void BiasAdjst(void)
 			 #if FUTABA
              if(Pulsewidth_Bias > 1000)
 	       	{	   
-	           FR_scale = dl_map(1200-Pulsewidth_Bias,0,200,BIAS_SACLE,MAX_BIAS_SCALE) ;
+	           FR_scale = dl_map(1200-Pulsewidth_Bias,0,200,BIAS_SACLE,1.0) ;
 	           FL_scale = 1.0;
 		    }
 	       else if(Pulsewidth_Bias <= 1000)
 	       	{
 			   FR_scale = 1.0;
-	           FL_scale = dl_map(Pulsewidth_Bias-800,0,200,BIAS_SACLE,MAX_BIAS_SCALE);	          
+	           FL_scale = dl_map(Pulsewidth_Bias-800,0,200,BIAS_SACLE,1.0);	          
 		    }
 		    #elif SIYI || FLYSKY || YUNZHUO
              if(Pulsewidth_Bias > 992)
@@ -1158,13 +1158,13 @@ void BiasAdjst(void)
 			  #if FUTABA
               if(Pulsewidth_Bias > 1000)
 			   {	 
-				 BR_scale = dl_map(1200-Pulsewidth_Bias,0,200,BIAS_SACLE,MAX_BIAS_SCALE);
+				 BR_scale = dl_map(1200-Pulsewidth_Bias,0,200,BIAS_SACLE,1.0);
 				 BL_scale = 1.0;
 			  }
 			 else if(Pulsewidth_Bias <= 1000)
 			  {
 				 BR_scale = 1.0;
-				 BL_scale = dl_map(Pulsewidth_Bias-800,0,200,BIAS_SACLE,MAX_BIAS_SCALE);		
+				 BL_scale = dl_map(Pulsewidth_Bias-800,0,200,BIAS_SACLE,1.0);		
 			  }
 			 #elif SIYI || FLYSKY || YUNZHUO
               if(Pulsewidth_Bias > 992)
@@ -1210,18 +1210,15 @@ void BiasadjustSave(void)
 
 void Bias_check(void)
 {
-	
 	ProjectModeGpioInit();
 	if(IsEnterProjectMode1() == true)
 	   {
 		  FrontAdjust = 1;
-		  OLED_ShowString(0,8 ,"FrontAdjust");
 		  SerialProtocol.putstr("FrontAdjust");	  
 	   }
 	if(IsEnterProjectMode2() == true)
 	   {
 		  BackAdjust = 1; 
-		  OLED_ShowString(0,8,"BackAdjust");
 		  SerialProtocol.putstr("BackAdjust");
 	   }
 	if(FrontAdjust == 0)
@@ -1246,15 +1243,15 @@ void Bias_check(void)
 			 #if FUTABA
 	         if(f_bias > 1200) f_bias = 1000;
 				 else if(f_bias < 800) b_bias = 1000;
-				 if(f_bias > 1000)  //如果f_bia大于1000就是往左偏了，右轮速度要减小
+				 if(f_bias > 1000)
 				  { 	
-					FR_scale = dl_map(1200-f_bias,0,200,BIAS_SACLE,MAX_BIAS_SCALE);
+					FR_scale = dl_map(1200-f_bias,0,200,BIAS_SACLE,1.0);
 					FL_scale = 1.0;
 				  }
 				 else if(f_bias <= 1000)
 				  {
 					FR_scale = 1.0;
-					FL_scale = dl_map(f_bias-800,0,200,BIAS_SACLE,MAX_BIAS_SCALE);			   
+					FL_scale = dl_map(f_bias-800,0,200,BIAS_SACLE,1.0);			   
 				  } 
 			 #elif SIYI || FLYSKY || YUNZHUO
              if(f_bias > 1800) f_bias = 992;
@@ -1298,13 +1295,13 @@ void Bias_check(void)
 			 else if(b_bias < 800) b_bias = 1000;
 			 if(b_bias > 1000)
 			  { 	
-				BR_scale = dl_map(1200-b_bias,0,200,BIAS_SACLE,MAX_BIAS_SCALE);
+				BR_scale = dl_map(1200-b_bias,0,200,BIAS_SACLE,1.0);
 				BL_scale = 1.0;
 			  }
 			 else if(b_bias <= 1000)
 			  {
 				BR_scale = 1.0;
-				BL_scale = dl_map(b_bias-800,0,200,BIAS_SACLE,MAX_BIAS_SCALE);	   
+				BL_scale = dl_map(b_bias-800,0,200,BIAS_SACLE,1.0);	   
 			  } 
 			 #elif SIYI || FLYSKY || YUNZHUO
              if(b_bias > 1800) b_bias = 992;
@@ -1339,85 +1336,92 @@ void TaskTimeHandle(void)
 #endif
 /*
 ----------------------------------------------------------------------------------
-以下为自己写的函数
+????????��?????
 */
 // 调节系数定义
 #define FIGURE_CHECK 1
-float FHspeed_Scale=1;
+#define DELAY_TURN 0          //不通过delay控制转弯
+float FHspeed_Scale=0;
 float FLspeed_Scale=0.98;
 float BHspeed_Scale=2;
 float BLspeed_Scale=2;
 // 高速和低速的基准pwm值
-int highspeed = 150;
+int highspeed = 130;
 int lowspeed = 100;  //正常设置为100
 int ex_lowspeed = 80;
 int ex_highspeed = 200;
 
 int Right_Figure=0,Left_Figure=0;  //用于调整车身偏差的姿态
-int bias_time =10; // 偏离轨道时调整的时间
+int bias_time = 50; //偏离轨道时调整的时间
+int LR_bias_time = 20;//使用左右转弯时调整的时间
+#if DELAY_TURN
 int bend_time =850; //转弯时间
-int track1 = 0; //中间循迹模块
+#else
+bool L_Turn_Flag = 0;
+bool R_Turn_Flag = 0;
+int cnt = 0;  //防止过度左转或右转，一个cnt10ms时间
+#endif
+int track1 = 0; //中间传感器的值
 #if SECOND_TRACK
 int track2 = 0;
 #endif
 #if FIGURE_CHECK
-int l_cnt = 0;//记录向左调偏差的时间
+int l_cnt = 0;//往左校准偏差的次数
 #endif
 int pwm_y1;
 int pwm_y2;
 
 void Highspeed_Forward(void)
 {
-	// 往右偏，左轮太快
+	// ??????????????
 	pwm_y1 = highspeed;
 	pwm_y2 = highspeed+FHspeed_Scale;
-	motor1.spin(pwm_y1);   //左轮
-	motor2.spin(-pwm_y2);   //右轮，电机接受的值与左轮相反
+	motor1.spin(pwm_y1);   //????
+	motor2.spin(-pwm_y2);   //??????????????????????
 	delay_us(100);
 }
 		
 
 void Lowspeed_Forward(void)
 {
-	//往右偏，左轮太快
+	//??????????????
 	//pwm_y1 = lowspeed*FLspeed_Scale;
 	//pwm_y2 = lowspeed;
 	pwm_y1 = lowspeed;
 	pwm_y2 = lowspeed;
 	motor1.spin(pwm_y1);   //左轮
-	motor2.spin(-pwm_y2);   //右轮，电机接受的值与左轮相反
+	motor2.spin(-pwm_y2);   //右轮，电机接收的值与左轮相反
 	delay_us(25);
 }
 void Highspeed_Backrward(void)
 {
-	// 往左偏，右轮过快
-	pwm_y1 = highspeed+BHspeed_Scale;
-	pwm_y2 = highspeed-BHspeed_Scale-1;
-	motor1.spin(-pwm_y1);   //左轮
-	motor2.spin(pwm_y2);   //右轮，电机接受的值与左轮相反
+	pwm_y1 = highspeed;
+	pwm_y2 = highspeed;
+	motor1.spin(-pwm_y1);   
+	motor2.spin(pwm_y2);   //右轮，与左轮接收的值相反
 	delay_us(25);
 }
 
-void Lowspeed_Backrward(void) //停止
+void Lowspeed_Backrward(void) //??
 {
-	pwm_y1 = lowspeed+BLspeed_Scale;
-	pwm_y2 = lowspeed-BLspeed_Scale;
-	motor1.spin(-pwm_y1);   //左轮
-	motor2.spin(pwm_y2);   //右轮，电机接受的值与左轮相反
+	pwm_y1 = lowspeed;
+	pwm_y2 = lowspeed;
+	motor1.spin(-pwm_y1);   //????
+	motor2.spin(pwm_y2);   //??????????????????????
 	delay_us(100);
 }
 void Left(void)
 {
-	pwm_y1 = -highspeed;
-	pwm_y2 = highspeed;
+	pwm_y1 = -lowspeed;
+	pwm_y2 = lowspeed;
 	motor1.spin(pwm_y1);   //左轮
 	motor2.spin(-pwm_y2);   //右轮，电机接受的值与左轮相反
 	delay_us(100);
 }
-void Right(void)  //右转
+void Right(void)  //???
 {
-	pwm_y1 = highspeed;
-	pwm_y2 = -highspeed;
+	pwm_y1 = lowspeed;
+	pwm_y2 = -lowspeed;
 	motor1.spin(pwm_y1);   //左轮
 	motor2.spin(-pwm_y2);   //右轮，电机接受的值与左轮相反
 	delay_us(100);
@@ -1425,15 +1429,31 @@ void Right(void)  //右转
 void Forward_Left(void)
 {
 	pwm_y1 = lowspeed;
-	pwm_y2 = highspeed;
+	pwm_y2 = highspeed+10;
 	motor1.spin(pwm_y1);
 	motor2.spin(-pwm_y2);
 	delay_us(100);
 }
 void Forward_Right(void)
 {
-	pwm_y1 = highspeed;
+	pwm_y1 = highspeed+10;
 	pwm_y2 = lowspeed;
+	motor1.spin(pwm_y1);
+	motor2.spin(-pwm_y2);
+	delay_us(100);
+}
+void Right_Forward(void)  //与Forward_Right相比更加注重转向
+{
+	pwm_y1 = highspeed+10;
+	pwm_y2 = lowspeed-10;
+	motor1.spin(pwm_y1);
+	motor2.spin(-pwm_y2);
+	delay_us(100);
+}
+void Left_Forward(void)
+{
+	pwm_y1 = lowspeed-10;
+	pwm_y2 = highspeed+10;
 	motor1.spin(pwm_y1);
 	motor2.spin(-pwm_y2);
 	delay_us(100);
@@ -1463,120 +1483,163 @@ void Stop(void)
 
 void test_control(void)
 {
-	//  测试用函数
+	
 	UltrasonicWave_StartMeasure();
 	int Distance=(int)distance;
-
-	
-	
-	/*
-	if (Distance <=30)
-		{
-			Lowspeed_Backrward();
-		}
-		else
-		{
-			Stop();
-		}
-		*/
-	//更新循迹状态
+	//?????????
 	track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
 	#if SECOND_TRACK
 	track2 = TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
 	#endif
-	//if(TRACK1==0&&TRACK2==0&&TRACK3==1&&TRACK4==0&&TRACK5==0) 
-	if(track1 == 100)  // 前进   5个传感器视为十进制不同位
+	#if !DELAY_TURN
+	if(!L_Turn_Flag&&!R_Turn_Flag)
 	{
-		#if FIGURE_CHECK
-		if (l_cnt>0)   //往左修正次数多，此时车身左偏
+	#endif
+	if(track2 == 100) 
+	{
+		if (track1==1000) //???????
 		{
 			Forward_Right();
 			delay(bias_time);
-			l_cnt--;
-		}else if (l_cnt<0)
+			Lowspeed_Forward();
+		}
+		else if (track1==10)
 		{
 			Forward_Left();
 			delay(bias_time);
-			l_cnt++;
+			Lowspeed_Forward();
 		}
-		#if SECOND_TRACK
-		if (track2 == 100)
+		else
 		{
-			l_cnt = 0; //前后的传感器都在中间，认为此时车身是正的
+			Lowspeed_Forward();
 		}
-		#endif
-		
-		#endif
-		
-		Lowspeed_Forward();
-	}
-	else if((track1 == 111)||(track1 == 1111))  // 直角左转
-	{
-		
-		Stop();
-		delay(100);
-		Left();
-		delay(bend_time);
-
 
 	}
-	else if((track1 == 11100)||(track1 == 11110)) //直角右转
+	else if((track1 == 111)||(track1 == 1111)||(track1==11))  // 左转
 	{
-		
-		Stop();
-		delay(100);
-		Right();
-		delay(bend_time);
+		if (track2==0)//正常左右转向时，前端传感器应该感应不到黑线了，如果感应到说明其实时转向后中间传感器还没有走过原来的循迹线
+		{
+			Stop();
+			delay(100);
+			#if DELAY_TURN
+			Left();
+			delay(bend_time);
+			#else
+			L_Turn_Flag = 1;
+			#endif
+		}else if (track2<100)
+		{
+			Forward_Left();
+		}
+		else if (track2>100)
+		{
+			Forward_Right();
+		}else if (track2==100)
+		{
+			Lowspeed_Forward();
+		}
+	}
+	else if((track1 == 11100)||(track1 == 11110)||(track1==11000)) //右转
+	{
+		if (track2 == 0)
+		{
+			Stop();
+			delay(100);
+			#if DELAY_TURN
+			Right();
+			delay(bend_time);
+			#else
+			R_Turn_Flag = 1;
+			#endif
+		}else if (track2 >100)
+		{
+			Forward_Right();
+		}
+		else if (track2<100)
+		{
+			Forward_Left();
+		}
+		else if (track2 == 100)
+		{
+			Lowspeed_Forward();
+		}
+	}
+	
+	else if (track2 == 1000)//车头左偏
+	{
+		if (track1<100&&track1>0)//中间偏左但是车头偏右
+		{
+			Right_Forward();
+		}
+		else
+		{
+			Right_Forward();  
+			delay(bias_time);
+			Lowspeed_Forward();
+		}
+	}
+	else if(track2 == 10)//车身右偏
+	{
+		if (track1>100)
+		{
+			Left_Forward();
+		}
+		else
+		{
+			Left_Forward();  
+			delay(bias_time);
+			Lowspeed_Forward();
+		}
+	}
+	else if (track2 == 10000)//车身极度左偏
+	{
+			Right();
+			delay(LR_bias_time);
+			Lowspeed_Forward();
+	}
+	else if (track2 == 1)//车头极度右偏
+	{
+			Left();
+			delay(LR_bias_time);
+			Lowspeed_Forward();
 
 	}
 	
-	else if (track1 == 1000)//车右偏
-	{
-		Forward_Right();  
-		delay(bias_time);
-		Lowspeed_Forward();
-		#if FIGURE_CHECK
-		l_cnt--;  //车身向右偏了,相应左偏时间减小
-		#endif
-	}
-	else if(track1 == 10)//车左偏
-	{
-		Forward_Left();  
-		delay(bias_time);
-		Lowspeed_Forward();
-		#if FIGURE_CHECK
-		l_cnt++; //车身向左偏了
-		#endif
-	}
-	//if (TRACK1==0&&TRACK2==0&&TRACK3==0&&TRACK4==0&&TRACK5==0) //检测不到黑线
+	
 	#if SECOND_TRACK
-	else if(track1==0&&track2==1000 ) // 线卡在右边了
+	else if(track2==0&&track1==1000 ) //前面传感器已经飞出去的情况
 	{
-		Forward_Right();
+		Right_Forward();
 		delay(bias_time);
-		Lowspeed_Forward();//继续前进
+		Lowspeed_Forward();
 		#if FIGURE_CHECK
 		l_cnt--;
 		#endif
 	}
-	else if (track1==0&&track2==10)//线卡在左边了
+	else if (track2==0&&track2==10)
 	{
-		Forward_Left();
+		Left_Forward();
 		delay(bias_time);
-		Lowspeed_Forward();//继续前进
+		Lowspeed_Forward();
 		#if FIGURE_CHECK
 		l_cnt++;
 		#endif
 	}
-	else if (track1==0&&track2==10000)//转弯右出界
+	
+	else if (track2==0&&track1==10000)//传感器飞出去，车身极度偏差
 	{
-		Lowspeed_Forward();//继续前进
+		Right();
+		delay(bias_time);
+		Lowspeed_Forward();
 	}
-	else if (track1==0&&track2==1)//转弯左出界
+	else if (track2==0&&track1==1)
 	{
-		Lowspeed_Forward();//继续前进
+		Left();
+		delay(bias_time);
+		Lowspeed_Forward();
 	}
-	else if (track1==0&&track2 == 00100)
+	
+	else if (track2==0&&track1 == 100)
 	{
 		Lowspeed_Forward();
 	}
@@ -1584,16 +1647,66 @@ void test_control(void)
 	else if(track1 == 0&&track2 == 0)
 	{
 		Stop();
+		#if FIGURE_CHECK
+		l_cnt=0;
+		#endif
 	}
 	#else
-	else if(track1 == 0)  //检测不到黑线，停车
+	else if(track1 == 0)  //?????????????
 	{
 		Stop();
 	}
 	#endif
+	
+	#if !DELAY_TURN
+	}
+	#endif
+	#if !DELAY_TURN
+	if (L_Turn_Flag)
+	{
+		Left();
+		if (track2 == 1)
+		{
+			L_Turn_Flag=0; 
+			cnt = 0;
+			Forward_Right();
+			delay(50);     
+			Lowspeed_Forward();
+			delay(100);
+		}
+		cnt++;
+		if (cnt>=200)  
+		{
+			Stop();
+			L_Turn_Flag=0;
+			cnt=0;
+		}
+		
+	}else if (R_Turn_Flag)
+	{
+		Right();
 
-	//没有检测到黑线则是0,检测到就是1
+		if (track2 == 10000)
+		{
+			R_Turn_Flag=0;
+			cnt = 0;
+			Forward_Left();
+			delay(50);
+			Lowspeed_Forward();
+			delay(100);
+		}
+		cnt++;
+		if (cnt>=200)
+		{
+			Stop();
+			R_Turn_Flag=0;
+			cnt=0;
+		}
+	}
+	
+	
 
+	#endif
 	
 }
 
@@ -1603,11 +1716,11 @@ int main(void)
 {
 
 	
-	// 开关
+	// ????
 	bool OnOff = false;
-	// 分配内存
+	// ???????
     char buffer[50];
-	// 初始化时间，包括速度、led、电机等 
+	// ????????????????led??????? 
     uint32_t publish_vel_time = 0;
 	uint32_t previous_imu_time = 0;
 	uint32_t previous_oled_time = 0;
@@ -1617,10 +1730,10 @@ int main(void)
 	uint32_t previous_control_time = 0;
 	uint32_t previous_battery_debug_time = 0;
 	//uint32_t previous_sonic_time = 0;
-	// 电量不足预告
+	// ???????????
 	char battery_buffer[]= "The voltage is lower than 11.3V,Please charge! ";
 
-	// 系统初始化，包括系统、四个电机，编码器，led以及GPIO
+	// ?????????????????????????????????led???GPIO
 	SystemInit();
 	initialise();
 	motor1.init();
@@ -1652,19 +1765,19 @@ int main(void)
     InitTimer6();
 	#endif
 
-	// 设置Serial口的波特率
+	// ????Serial????????
 	SerialPrint.begin(115200);
 	dlProtocol.begin();
-	drv_uart_init(9600);  //LoRa串口初始化
-	sonar_init(65535-1,72-1);  //程序里定死了65535，如果要修改，请在sonar的TIM8IRQ里把65535一并改掉
-	Track_Init(); //循迹模块初始化
+	drv_uart_init(9600);  //LoRa????????
+	sonar_init(65535-1,72-1);  //??????????65535??????????????sonar??TIM8IRQ???65535??????
+	Track_Init(); //??????????
 
     #if IBUS_EN
     SerialBus.begin(115200);
     IBus.begin();
 
 	#elif SBUS_EN
-    sBus.begin();// SBUS初始化
+    sBus.begin();// SBUS?????
 
 	#elif PWM_EN
 	TIM1_Cap_Init(0xFFFF,72-1);
@@ -1673,41 +1786,41 @@ int main(void)
 	TIM1_Cap_Init(0xFFFF,72-1);
 	#endif
     #if BIAS_ADJUST 
-    Bias_check();  //偏差值初始化
+    Bias_check();  //?????????
 	#endif
-	// led开关
+	// led????
 	led.on_off(OnOff);
 
 	//test_control();
 
 
-	/*-------------------------------以上都是初始化------------------------------------------*/
-	// 主循环
+	/*-------------------------------???????????------------------------------------------*/
+	// ?????
 	#if 1
 	while(1)
 	{
 		if((millis()-previous_LoRa_time)>=20)
 	   {
 		/*
-		*LoRa通信模块，用来接收传输的控制信息
+		*LoRa?????�??????????????????
 		*/
-		RxLength = drv_uart_rx_bytes(LoRa_buffer); //接收信息
+		RxLength = drv_uart_rx_bytes(LoRa_buffer); //???????
 		if (RxLength != 0)
 		{
 			
-			
 			for(int i=0; i<8; i++)	
 			{	
-				// 如果不是某条信息，那么符号位变为1，不再比较
+				// 判断属于哪一个指令
 				if (LoRa_buffer[i]!=Remote_on[i] && Remote_on_flag!= 1)  Remote_on_flag = 1;
 				if (LoRa_buffer[i]!=Remote_off[i] && Remote_off_flag!= 1)  Remote_off_flag = 1;
+				//if (LoRa_buffer[i]!=LR_Adjust[i] && Remote_flag!= 100||110||111) Remote_flag +=100;
 
 			}
-			if (Remote_off_flag==1&&Remote_on_flag==1)
+			if (Remote_on_flag==1&&Remote_off_flag==1) //错误格式指令
 			{
-				drv_uart_tx_bytes((uint8_t *)error_message, 28);
-				Remote_off_flag = 0;
-				Remote_on_flag = 0;
+				drv_uart_tx_bytes((uint8_t*)error_message, 28);
+				Remote_on_flag=0;
+				Remote_off_flag=0;
 			}
 			else if (Remote_on_flag==0)
 			{
@@ -1721,9 +1834,12 @@ int main(void)
 			{
 				Stop();
 				OLED_Clear();
-				drv_uart_tx_bytes((uint8_t *)Self_message, 22);
-				REMOTE_CONTROL_FLAG = 0;//退出遥控模式
+				drv_uart_tx_bytes((uint8_t*)Self_message, 22);
+				REMOTE_CONTROL_FLAG = 0;//刷新符号位
 				Remote_on_flag = 0;
+				#if FIGURE_CHECK
+				l_cnt = 0;//清零姿态
+				#endif
 			}
 			
 		previous_LoRa_time = millis();
@@ -1741,7 +1857,7 @@ int main(void)
         if(((millis() - previous_flysky_time) >= 1000 / IBUS_RATE) && REMOTE_CONTROL_FLAG)
         	{
 			/*
-			*遥控器模块，每1000/40=25ms执行一次，运行遥控器控制
+			*???????�?1000/40=25ms?????��??????????????
 			*/   
         	  #if IBUS_EN
               ibus_control();     
@@ -1757,12 +1873,19 @@ int main(void)
 		    }
 
 		#if (CONNECT_DETEC)
-		if ((millis() - previous_command_time) >= 10 && !REMOTE_CONTROL_FLAG){  
+		if ((millis() - previous_command_time) >= 50 && !REMOTE_CONTROL_FLAG){  
 			/*
-			/PC运动模块运行10ms后刷新，如果遥控器闲置则停车
+			/PC??????????10ms???????????????????????
 			*/
 			test_control();
-
+			//Highspeed_Forward();
+			//Lowspeed_Forward();
+			/*
+			Forward_Left();
+			delay(3000);
+			Forward_Right();
+			delay(3000);
+			*/
 		}
 
 
@@ -1770,7 +1893,7 @@ int main(void)
         if((millis() - previous_movebase_time) >= (1000 / MOVEBASE_RATE))
         	{
 			/*
-			*速度模块,如果有编码器将进行平滑速度控制，每1000/40=25ms获取一次速度
+			*??????,????��??????????????????????1000/40=25ms?????????
 			*/   
                getVelocities();
                previous_movebase_time = millis();	  
@@ -1803,10 +1926,10 @@ int main(void)
 		 
 		 if((millis() - previous_oled_time) >= (1000 / OLED_RATE)&& REMOTE_CONTROL_FLAG){
 			/*
-			*OLED模块，，遥控器使用时启动每1000/50=20ms在屏幕上更新运动数据
+			*OLED??�????????????????1000/50=20ms?????????????????
 			*/ 
 			    static int count ,fresh,num=0;
-				//打印汉字,以后可能会改到切换模式的那个地方
+				//???????,??????????��???????????
 				if (num++ >= 100)
 				{
 					num=0;
@@ -1864,11 +1987,20 @@ int main(void)
 				OLED_ShowString(0,0,"Snag:");
 				OLED_ShowNumber(0,16,(int)distance,4,16);
 				OLED_ShowString(0,32,"Trace:");
+				/*
 				if (TRACK1) OLED_ShowNumber(0,48,1,1,16); else if(!TRACK1) OLED_ShowNumber(0,48,0,1,16);
 				if (TRACK2) OLED_ShowNumber(8,48,2,1,16); else if(!TRACK2) OLED_ShowNumber(8,48,0,1,16);
 				if (TRACK3) OLED_ShowNumber(16,48,3,1,16); else if(!TRACK3) OLED_ShowNumber(16,48,0,1,16);
 				if (TRACK4) OLED_ShowNumber(24,48,4,1,16); else if(!TRACK4) OLED_ShowNumber(24,48,0,1,16);
 				if (TRACK5) OLED_ShowNumber(32,48,5,1,16); else if(!TRACK5) OLED_ShowNumber(32,48,0,1,16);
+				*/
+				
+				if (TRACK6) OLED_ShowNumber(0,48,1,1,16); else if(!TRACK6) OLED_ShowNumber(0,48,0,1,16);
+				if (TRACK7) OLED_ShowNumber(8,48,2,1,16); else if(!TRACK7) OLED_ShowNumber(8,48,0,1,16);
+				if (TRACK8) OLED_ShowNumber(16,48,3,1,16); else if(!TRACK8) OLED_ShowNumber(16,48,0,1,16);
+				if (TRACK9) OLED_ShowNumber(24,48,4,1,16); else if(!TRACK9) OLED_ShowNumber(24,48,0,1,16);
+				if (TRACK10) OLED_ShowNumber(32,48,5,1,16); else if(!TRACK10) OLED_ShowNumber(32,48,0,1,16);
+				
 				//OLED_ShowNumber(0,48,track2,5,16);
 				OLED_Refresh_Gram();
 				previous_oled_time = millis();
@@ -1879,15 +2011,15 @@ int main(void)
          #endif
          if((millis() - previous_led_time) >= (1000 / LED_RATE)){
             /*
-			*LED模块，每1000/10=100ms执行一次，控制LED闪烁
+			*LED??�?1000/10=100ms?????��?????LED???
 			*/   
 			    static bool blink = false, start_blink = true;
-                if((PulsewidthX == 0  || PulsewidthY == 0) &&  PC_start == false)//PC不连接且电机不动时闪烁
+                if((PulsewidthX == 0  || PulsewidthY == 0) &&  PC_start == false)//PC??????????????????
 				  {   
 				      blink = !blink;
                       led.on_off(blink);		 
 				  }
-				 else if(start_blink == true){   //否则强制关闭LED
+				 else if(start_blink == true){   //?????????LED
                          start_blink = false;
                          led.on_off(false);
          
@@ -1898,7 +2030,7 @@ int main(void)
 		   {
 	         if ((millis() - previous_debug_time) >= (1000 / DEBUG_RATE)) {
 				/*
-				*偏差修正模块，将偏差值信息存储及输出并进行偏差调整，每1000/10=100ms执行一次
+				*?????????�??????????��????????????????????1000/10=100ms??????
 				*/						 
 			     print_debug();
 			     #if BIAS_ADJUST
@@ -1913,7 +2045,7 @@ int main(void)
 		   {
 	         if ((millis() - previous_motorprotec_time) >= (1000 / MOTORPROTEC_RATE)) {						 
 			    /*
-				*电机保护模块，如果当前电机一直不动且输入的脉宽很大的情况维持10次则强制停止电机 
+				*?????????�????????????????????????????????????10???????????? 
 				*/
 				  if((current_rpm1 == 0 && abs(pwm1) >= 240)||( current_rpm2 == 0 && abs(pwm2) >= 240)) i++;
 			      else i = 0;
