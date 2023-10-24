@@ -15,7 +15,7 @@
 
 
 #include "drv_uart.h"
-
+#include "config.h"
 
 
 
@@ -108,4 +108,26 @@ uint8_t drv_uart_rx_bytes( uint8_t* RxBuffer )
 	
 	return l_RxLength;					//等待超时，数据接收完成
 }
-
+/**
+  * @brief :判断指令类型
+  * @param :
+  *			@RxBuffer:发送数据首地址
+			@str2:要比较的指令
+  * @note  :无
+  * @retval:接收到的字节个数
+  */
+int str_cmp(uint8_t* RxBuffer,char* str2)//比较指令的函数
+{
+	int length=strlen(str2);
+	int i=0;
+	for (; i < length; i++)
+	{
+		if (RxBuffer[i]!=str2[i])
+			break;
+	}
+	if (i==length)
+		return 1;
+	else
+		return 0;
+	
+}
