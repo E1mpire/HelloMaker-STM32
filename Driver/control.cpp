@@ -322,51 +322,14 @@ void parking(int command)
 	#if SECOND_TRACK
 	track2 = TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
 	#endif
-
-	
-	if (track1 == 0)//此后中间传感器一直为0
-	{
-		delay(200);
-		//停车
-		Stop();
-		if (track2!=100)
-		{
-			
-		    //如果前方传感器没有识别到线，那么应该倒转
-			if (track2==0)
-			{
-				Left();
-				while(track2!=1)//粗调，一直左转直到前面传感器碰到循迹线
-					track2=TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;//在此期间不断刷新传感器
-				Stop();
-				delay(200);
-				Lowspeed_Backward();
-				delay(200);
-			}
-			if (track2<100)
-			{
-				Left();
-				delay(bias_time);
-				Stop();
-			}else if (track2>100)
-			{
-				Right();
-				delay(bias_time);
-				Stop();
-			}
-		}
-		if (current_command!=command)//接收到新指令
-		{
-			current_command = command;//更新命令
-			reach_parking = false;    //刷新状态
-		}
-	}else if (track1!=0)
+	if (track1!=0)
 	{
 		if (track1!=0)
 		{
 			if (track2==100)
 			{
 				Lowspeed_Forward();
+				delay(8*bias_time);
 			}else if (track2==1000)
 			{
 				Right_Forward();  
@@ -379,6 +342,48 @@ void parking(int command)
 				delay(bias_time);
 			}
 
+		}
+	}
+	else if (track1 == 0)//此后中间传感器一直为0
+	{
+		//停车
+		Stop();
+		if (track2!=100)
+		{
+		    //如果前方传感器没有识别到线，那么应该倒转
+			if (track2==0)
+			{
+				Left();
+				while(track2!=1)//粗调，一直左转直到前面传感器碰到循迹线
+					track2=TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;//在此期间不断刷新传感器
+				Stop();
+				delay(200);
+				Lowspeed_Backward();
+				delay(200);
+			}
+			if (track2<100)//细调
+			{
+				Left();
+				delay(bias_time);
+				Stop();
+			}else if (track2>100)
+			{
+				Right();
+				delay(bias_time);
+				Stop();
+			}
+			if (track1!=0)//保证后面中间传感器不会又回到循迹线上
+			{
+				Lowspeed_Backward();
+				while (track1!=0)
+					track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
+			}
+			
+		}
+		if (current_command!=command)//接收到新指令
+		{
+			current_command = command;//更新命令
+			reach_parking = false;    //刷新状态
 		}
 	}
 	
