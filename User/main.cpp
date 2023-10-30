@@ -1307,11 +1307,16 @@ void TaskTimeHandle(void)
 char Remote_on[10] = "12345678";  //开启遥控器的指令
 char Remote_off[10] = "87654321";  //关闭遥控器进入程序控制的指令
 char LR_Adjust[10] = "44444444";
+char Goto_A[10] = "Go to A"; //去泊车点
+char Goto_B[10] = "Go to B"; //去1号停车点
+char Goto_C[10] = "Go to C"; //去2号停车点
+int command = 1;     //发送的指令
+extern int current_command = 1;	//当前的指令  值设置为1，默认从泊车点出发
 uint8_t LoRa_buffer[100] = {0};
 uint8_t RxLength = 0;
-char Remote_message[30] =  {'R','e','m','o','t','e',' ','C','o','n','t','r','o','l',' ','a','c','t','i','v','a','t','e'};
-char Self_message[30] = {'S','e','l','f',' ','C','o','n','t','r','o','l',' ','a','c','t','i','v','a','t','e'};
-char error_message[30] = {'C','o','m','m','a','n','d','  ',' i','n',' ','w','r','o','n','g',' ','f','o','r','m','a','t'};
+char *Remote_message =  "Remote Control activate!\n";
+char *Self_message = "Self Control activate!\n";
+char *error_message= "Command in wrong format!\n";
 
 /*---------------------------------------------------------------------------*/
 int main(void) 
@@ -1370,15 +1375,16 @@ int main(void)
 	SerialPrint.begin(115200);
 	dlProtocol.begin();
 	drv_uart_init(9600);  //LoRa模块的波特率固定为9600
-	sonar_init(65535-1,72-1);  //程序规定好了检测周期为65535如果要改要同时改变sonar.cpp中TIM8IRQ里的
-	Track_Init(); //??????????
+	sonar_init(65535-1,72-1);  //程序规定好了检测周期为65535如果要改要同时改变sonar.cpp中TIM8IRQ里的参数
+	Track_Init(); //循迹模块初始化
+	Init_Route();
 
     #if IBUS_EN
     SerialBus.begin(115200);
     IBus.begin();
 
 	#elif SBUS_EN
-    sBus.begin();// SBUS?????
+    sBus.begin();// SBUS初始化
 
 	#elif PWM_EN
 	TIM1_Cap_Init(0xFFFF,72-1);
@@ -1387,7 +1393,7 @@ int main(void)
 	TIM1_Cap_Init(0xFFFF,72-1);
 	#endif
     #if BIAS_ADJUST 
-    Bias_check();  //?????????
+    Bias_check();  //读取偏差值
 	#endif
 	// led????
 	led.on_off(OnOff);
@@ -1408,29 +1414,45 @@ int main(void)
 		RxLength = drv_uart_rx_bytes(LoRa_buffer); //检测收到信号的长度
 		if (RxLength != 0)
 		{
+			//drv_uart_tx_bytes((uint8_t*)LoRa_buffer,RxLength);
 			if (str_cmp(LoRa_buffer,Remote_on))//比较指令是否相同，默认8位指令
 			{
 				Stop();
 				OLED_Clear();
-				drv_uart_tx_bytes((uint8_t*)Remote_message, 23);
+				drv_uart_tx_bytes((uint8_t*)Remote_message, 23+2);
 				REMOTE_CONTROL_FLAG = 1; //进入遥控模式
 			}
 			else if (str_cmp(LoRa_buffer,Remote_off))
 			{
 				Stop();
 				OLED_Clear();
-				drv_uart_tx_bytes((uint8_t*)Self_message, 22);
+				drv_uart_tx_bytes((uint8_t*)Self_message, 22+2);
 				REMOTE_CONTROL_FLAG = 0;//刷新符号位,退出遥控模式
-				Remote_on_flag = 0;
-			}else
-			{
-				drv_uart_tx_bytes((uint8_t*)error_message, 28);
 			}
-			
-			
-			
-		
-		
+			else if (str_cmp(LoRa_buffer,Goto_A))
+			{
+				drv_uart_tx_bytes((uint8_t*)"Now device is going to parking",30);
+				command = 1;
+			}
+			else if (str_cmp(LoRa_buffer,Goto_B))
+			{
+				drv_uart_tx_bytes((uint8_t*)"Now device is going to Stop1",28);
+				command = 2;
+			}
+			else if (str_cmp(LoRa_buffer,Goto_C))
+			{
+				drv_uart_tx_bytes((uint8_t*)"Now device is going to Stop2",28);
+				command = 3;
+			}
+			else if (str_cmp(LoRa_buffer,LR_Adjust))
+			{
+				Lowspeed_Backward();
+			}
+			else
+			{
+				drv_uart_tx_bytes((uint8_t*)error_message+2, 28);
+			}
+
 		previous_LoRa_time = millis();
 		}
 	   }
@@ -1462,19 +1484,20 @@ int main(void)
 		    }
 
 		#if (CONNECT_DETEC)
-		if ((millis() - previous_command_time) >= 50 && !REMOTE_CONTROL_FLAG){  
+		if ((millis() - previous_command_time) >= 10 && !REMOTE_CONTROL_FLAG){  
 			/*
-			/PC??????????10ms???????????????????????
+			/程序控制部分，每10ms执行一次
 			*/
-			test_control();
-			//Highspeed_Forward();
-			//Lowspeed_Forward();
-			/*
-			Forward_Left();
-			delay(3000);
-			Forward_Right();
-			delay(3000);
-			*/
+			if (reach_parking)
+			{
+				parking(command);//进入停车程序 当收到不一样的指令时解除reach_parking状态
+			}else
+			{
+				test_control(current_command);
+			}
+			
+			
+
 		}
 
 
@@ -1600,15 +1623,15 @@ int main(void)
          #endif
          if((millis() - previous_led_time) >= (1000 / LED_RATE)){
             /*
-			*LED????1000/10=100ms????????????LED???
+			*LED闪烁1000/10=100ms执行一次LED模块
 			*/   
 			    static bool blink = false, start_blink = true;
-                if((PulsewidthX == 0  || PulsewidthY == 0) &&  PC_start == false)//PC??????????????????
+                if((PulsewidthX == 0  || PulsewidthY == 0) &&  PC_start == false)//PC不知道是干什么的，但是别动它
 				  {   
 				      blink = !blink;
                       led.on_off(blink);		 
 				  }
-				 else if(start_blink == true){   //?????????LED
+				 else if(start_blink == true){   
                          start_blink = false;
                          led.on_off(false);
          
@@ -1619,7 +1642,7 @@ int main(void)
 		   {
 	         if ((millis() - previous_debug_time) >= (1000 / DEBUG_RATE)) {
 				/*
-				*??????????????????????????????????????????1000/10=100ms??????
+				*偏差调整模块，每1000/10=100ms执行一次
 				*/						 
 			     print_debug();
 			     #if BIAS_ADJUST
@@ -1634,7 +1657,7 @@ int main(void)
 		   {
 	         if ((millis() - previous_motorprotec_time) >= (1000 / MOTORPROTEC_RATE)) {						 
 			    /*
-				*??????????????????????????????????????????????10???????????? 
+				*紧急停车模块，如果出现电机不转等异常情况则紧急停车
 				*/
 				  if((current_rpm1 == 0 && abs(pwm1) >= 240)||( current_rpm2 == 0 && abs(pwm2) >= 240)) i++;
 			      else i = 0;
