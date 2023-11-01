@@ -1421,7 +1421,6 @@ int main(void)
 				OLED_Clear();
 				drv_uart_tx_bytes((uint8_t*)Self_message, 22);
 				REMOTE_CONTROL_FLAG = 0;//刷新符号位,退出遥控模式
-				Remote_on_flag = 0;
 			}else
 			{
 				drv_uart_tx_bytes((uint8_t*)error_message, 28);
