@@ -1431,17 +1431,17 @@ int main(void)
 			}
 			else if (str_cmp(LoRa_buffer,Goto_A))
 			{
-				drv_uart_tx_bytes((uint8_t*)"Now device is going to parking",30);
+				drv_uart_tx_bytes((uint8_t*)"Now device is going to parking\n",30);
 				command = 1;
 			}
 			else if (str_cmp(LoRa_buffer,Goto_B))
 			{
-				drv_uart_tx_bytes((uint8_t*)"Now device is going to Stop1",28);
+				drv_uart_tx_bytes((uint8_t*)"Now device is going to Stop1\n",28);
 				command = 2;
 			}
 			else if (str_cmp(LoRa_buffer,Goto_C))
 			{
-				drv_uart_tx_bytes((uint8_t*)"Now device is going to Stop2",28);
+				drv_uart_tx_bytes((uint8_t*)"Now device is going to Stop2\n",28);
 				command = 3;
 			}
 			else if (str_cmp(LoRa_buffer,LR_Adjust))

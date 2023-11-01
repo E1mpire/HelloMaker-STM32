@@ -10,7 +10,7 @@
 #include "track.h"
 #include "sonar.h"
 #include "drv_uart.h"
-
+#include  "oled.h"
 
 extern bool reach_parking;  //是否到达停车点//停车标志位，停好车了才能发送下一个目的地
 

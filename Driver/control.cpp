@@ -42,7 +42,7 @@ int pwm_y2;
 //方向指令
 extern int current_command;
 //分岔转向设置
-bool L_turn_allow = false; //True允许左转
+bool L_turn_allow = false; //True允许左转  false:FC C0 true:01 01
 bool R_turn_allow = false;
 //停车入库设置
 bool reach_parking = true;  //是否到达停车点,默认为是，因为从停车点触发
@@ -70,6 +70,7 @@ Route *StopC=(Route*)malloc(sizeof(Route));      //2号停车点
 Route *Branch1=(Route*)malloc(sizeof(Route));    //1号分岔口，靠近瓷砖的那个
 Route *Branch2=(Route*)malloc(sizeof(Route));    //2号分岔口
 Route *current_node = Parking;//默认从泊车点开始
+Route *previous_node = NULL;  //记录车来源
 //Route *Nullptr;
 //Parking的位置应在停车位内，没有走过循迹线
 void Init_Route(void)
@@ -144,20 +145,28 @@ Route* toA(Route* node)
 {
 	switch (node->toA)
 	{
-	case 0:
+	case 0: //右转
+		L_turn_allow = false;
+		R_turn_allow = true;
+		break;
+	case 1://左转
 		L_turn_allow = true;
 		R_turn_allow = false;
 		break;
-	case 1:
+	case 2://直行
 		L_turn_allow = false;
-		R_turn_allow = true;
+		R_turn_allow = false;
+		break;
+	case 3://停车
+		L_turn_allow = true;
+		R_turn_allow = false;
 		break;
 	default:
 		L_turn_allow = true;
 		R_turn_allow = false;
 		break;
 	}
-	
+	previous_node = node;//记录上一个节点
 	return node->toA_next;	
 }
 
@@ -165,20 +174,27 @@ Route* toB(Route* node)
 {
 	switch (node->toB)
 	{
-	case 0:
-		L_turn_allow = true;
-		R_turn_allow = false;
-		break;
-	case 1:
+	case 0: //右转
 		L_turn_allow = false;
 		R_turn_allow = true;
 		break;
-	default://默认左转，走外圈
+	case 1://左转
+		L_turn_allow = true;
+		R_turn_allow = false;
+		break;
+	case 2://直行
+		L_turn_allow = false;
+		R_turn_allow = false;
+		break;
+	case 3://停车
+		Stop();//停车
+		break;
+	default:
 		L_turn_allow = true;
 		R_turn_allow = false;
 		break;
 	}
-	
+	previous_node = node;
 	return node->toB_next;	
 }
 
@@ -186,23 +202,113 @@ Route* toC(Route* node)
 {
 	switch (node->toC)
 	{
-	case 0:
-		L_turn_allow = true;
-		R_turn_allow = false;
-		break;
-	case 1:
+	case 0: //右转
 		L_turn_allow = false;
 		R_turn_allow = true;
 		break;
-	default://默认左转，走外圈
+	case 1://左转
 		L_turn_allow = true;
 		R_turn_allow = false;
 		break;
+	case 2://直行
+		L_turn_allow = false;
+		R_turn_allow = false;
+		break;
+	case 3://停车
+		Stop();//停车
+		break;
+	default:
+		Highspeed_Backward();
+		delay(200);
+		Stop();
+		break;
 	}
-	
+	previous_node = node;
 	return node->toC_next;	
 }
-
+/*
+*经过分岔口后更新节点信息
+*/
+void Update_node(int command)
+{
+	switch (command)//进行左转或右转后，已经到达下一个节点，需要更新信息
+		{
+		case 1:
+			if (current_node->toA_next==NULL)//已经到达停车点位置的前方
+				{
+					if (previous_node == Branch1)//如果是从Branch1来的
+					{
+						R_turn_allow = true;     //右转进入停车位
+						L_turn_allow = false;
+					}else if (previous_node == StopB)
+					{
+						R_turn_allow = false;     //直行进入停车位
+						L_turn_allow = false;
+					}
+					previous_node = previous_node->toA_next;//更新previous节点
+					
+				}
+			else if (previous_node==Parking&&current_node==Parking)//已经进入停车位
+				reach_parking = true;
+			else
+				current_node = toA(current_node);//使用toA函数更新节点信息
+			break;
+		case 2:
+			if (current_node->toB_next==NULL)//已经到达停车点位置的前方
+				{
+					if (previous_node == Parking)//如果是从Parking来的
+					{
+						R_turn_allow = true;     //右转进入停车位
+						L_turn_allow = false;
+					}else if (previous_node == Branch2)
+					{
+						R_turn_allow = false;     //直行进入停车位
+						L_turn_allow = false;
+					}
+					previous_node = previous_node->toB_next;//更新previous节点
+					
+				}
+			 else if (current_node->toB_next==NULL&&previous_node->toB_next==NULL)			
+				reach_parking=true;
+			else
+				current_node = toB(current_node);
+			break;
+		case 3:
+		if (current_node->toC_next==NULL)//已经到达停车点位置的前方
+				{
+					if (previous_node == Branch1)//如果是从Branch1来的
+					{
+						R_turn_allow = false;     //右转进入停车位
+						L_turn_allow = true;
+					}else if (previous_node == Branch2)
+					{
+						R_turn_allow = false;     //直行进入停车位
+						L_turn_allow = false;
+					}
+					previous_node = previous_node->toC_next;//更新previous节点
+					
+				}
+			else if (current_node->toC_next==NULL&&previous_node->toC_next==NULL)
+				reach_parking=true;
+			else
+				current_node = toC(current_node);
+			break;
+		case 0:
+			Stop();
+		default:
+			Stop();	//未收到正确指令则停车
+			drv_uart_tx_bytes((uint8_t*)"Error command in turning",30);
+			break;
+		}
+		/*测试用
+		if(L_turn_allow)OLED_ShowNumber(0,16,1,1,16);
+		else if (!L_turn_allow)OLED_ShowNumber(0,16,0,1,16);
+			
+		if(R_turn_allow) OLED_ShowNumber(16,16,1,1,16);
+		else if(!R_turn_allow)OLED_ShowNumber(16,16,0,1,16);
+		OLED_Refresh_Gram();
+		*/
+}
 
 void Highspeed_Forward(void)
 {
@@ -313,8 +419,9 @@ void Stop(void)
 	delay_us(100);
 }
 
+bool parking_position = false; //是否到达停车位置
 /*
-* 读取到停车线后进行停车操作
+* 到达停车位节点后，转一个弯进入停车位内，然后进入停车程序
 */
 void parking(int command)
 {
@@ -341,7 +448,12 @@ void parking(int command)
 				Right_Forward();  
 				delay(bias_time);
 			}
-
+			if (track2!=0&&track1==0)//因为线不够粗，所以偶尔会出现中间传感器读不到线的情况
+			{
+				Lowspeed_Forward();
+				delay(8*bias_time);
+			}
+			
 		}
 	}
 	else if (track1 == 0)//此后中间传感器一直为0
@@ -380,23 +492,24 @@ void parking(int command)
 			}
 			
 		}
-		if (current_command!=command)//接收到新指令
+		if (track2==100)//只有车停稳之后才接收下一个指令
 		{
+			if (current_command!=command)//接收到新指令时改变状态
+		{
+
 			current_command = command;//更新命令
 			reach_parking = false;    //刷新状态
+			Update_node(command);     //初始化节点信息
+
 		}
+			
+		}	
 	}
-	
-	
-	
-	
-	
 }
 
 
 void test_control(int command)
 {
-	
 	//读取超声波雷达
 	UltrasonicWave_StartMeasure();
 	int Distance=(int)distance;
@@ -446,6 +559,7 @@ void test_control(int command)
 		{
 			Lowspeed_Forward();
 			delay(100);//要让它走过那条循迹线，不再判断了
+			Update_node(command);//更新节点信息
 		}
 		
 	}
@@ -465,6 +579,7 @@ void test_control(int command)
 		{
 			Lowspeed_Forward();
 			delay(100);//要让它走过那条循迹线，不再判断了
+			Update_node(command);//更新节点信息
 		}
 		
 
@@ -588,9 +703,8 @@ void test_control(int command)
 	}
 	#endif
 	/*--------------左转与右转----------------------------*/
-	#if !DELAY_TURN
 	}
-	#endif
+
 	#if !DELAY_TURN
 	if (L_Turn_Flag)//左转标志，为了提高左右转的优先级另外单开
 	{
@@ -604,6 +718,7 @@ void test_control(int command)
 			//delay(100);
 			Right_Forward();
 			delay(200);    
+			Update_node(command);//更新节点信息
 		}
 		cnt++;
 		if (cnt>=200) //防止车一直转
@@ -612,33 +727,7 @@ void test_control(int command)
 			L_Turn_Flag=0;
 			cnt=0;
 		}//左转完成
-	switch (command)//进行左转或右转后，已经到达下一个节点，需要更新信息
-		{
-		case 1:
-			if (current_node->toA_next==NULL)//已经到达停车点位置
-				reach_parking=true;
-			else
-				current_node = toA(current_node);
-			break;
-		case 2:
-			if (current_node->toB_next==NULL)			
-				reach_parking=true;
-			else
-				current_node = toB(current_node);
-			break;
-		case 3:
-			if (current_node->toC_next==NULL)
-				reach_parking=true;
-			else
-				current_node = toC(current_node);
-			break;
-		case 0:
-			Stop();
-		default:
-			Stop();	//未收到正确指令则停车
-			drv_uart_tx_bytes((uint8_t*)"Error command in turning",30);
-			break;
-		}
+	
 		
 	}else if (R_Turn_Flag)
 	{
@@ -652,6 +741,7 @@ void test_control(int command)
 			//delay(100);
 			Left_Forward();
 			delay(200);
+			Update_node(command);//更新节点信息
 		}
 		cnt++;
 		if (cnt>=200)
@@ -660,35 +750,8 @@ void test_control(int command)
 			R_Turn_Flag=0;
 			cnt=0;
 		}
-		switch (command)//进行左转或右转后，已经到达下一个节点，需要更新信息
-		{
-		case 1:
-			if (current_node->toA_next==NULL)//已经到达停车点位置
-				reach_parking=true;
-			else
-				current_node = toA(current_node);
-			break;
-		case 2:
-			if (current_node->toB_next==NULL)			
-				reach_parking=true;
-			else
-				current_node = toB(current_node);
-			break;
-		case 3:
-			if (current_node->toC_next==NULL)
-				reach_parking=true;
-			else
-				current_node = toC(current_node);
-			break;
-		case 0:
-			Stop();
-		default:
-			Stop();	//未收到正确指令则停车
-			break;
-		}
+
 	}
-	
-	
 
 	#endif
 	
