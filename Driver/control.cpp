@@ -4,20 +4,6 @@
 #define DELAY_TURN 0          //不通过delay控制转弯
 #define SECOND_TRACK 1        //这个不要动，必须是1
 
-extern Motor motor1;
-extern Motor motor2;
-extern Motor motor3;
-extern Motor motor4;
-
-float FHspeed_Scale=0;
-float FLspeed_Scale=0.98;
-float BHspeed_Scale=2;
-float BLspeed_Scale=2;
-// 高速和低速的基准pwm值
-int highspeed = 130;
-int lowspeed = 100;  //正常设置为100
-int ex_lowspeed = 80;
-int ex_highspeed = 200;
 
 int Right_Figure=0,Left_Figure=0;  //用于调整车身偏差的姿态
 int bias_time=50; //偏离轨道时调整的时间
@@ -27,6 +13,7 @@ int bend_time =850; //转弯时间
 #else
 bool L_Turn_Flag = 0;
 bool R_Turn_Flag = 0;
+bool through_node = false;//是否走过分岔口
 int cnt = 0;  //防止过度左转或右转，一个cnt10ms时间
 #endif
 int track1 = 0; //中间传感器的值
@@ -37,15 +24,14 @@ int track2 = 0;
 int l_cnt = 0;//往左校准偏差的次数
 #endif
 
-int pwm_y1;
-int pwm_y2;
+
 //方向指令
 extern int current_command;
 //分岔转向设置
 bool L_turn_allow = false; //True允许左转  false:FC C0 true:01 01
 bool R_turn_allow = false;
 //停车入库设置
-bool reach_parking = true;  //是否到达停车点,默认为是，因为从停车点触发
+bool reach_parking = true;
 bool Reverse_parking = false;//为True则需要倒车入库
 //车身方向
 bool Clockside = false;//代表此时车子时顺时针方向巡航
@@ -57,6 +43,7 @@ A是泊车点 B是1号停车点 C是2号停车点 A_B是从泊车点到1号停�
 typedef struct route
 {
 	char* position;
+	int num;
 	int toA;//方向
 	int toB;
 	int toC;
@@ -76,6 +63,7 @@ Route *previous_node = NULL;  //记录车来源
 void Init_Route(void)
 {
 	Parking->position = "Parking";
+	Parking->num = 0;
 	Parking->toA = 3;
 	Parking->toB = 2;
 	Parking->toC = 1;
@@ -84,6 +72,7 @@ void Init_Route(void)
 	Parking->toC_next = Branch1;
 
 	StopB->position = "StopB";
+	StopB->num = 1;
 	StopB->toA = 1;
 	StopB->toB = 3;
 	StopB->toC = 2;
@@ -92,6 +81,7 @@ void Init_Route(void)
 	StopB->toC_next = Branch2;
 
 	StopC->position = "StopC";
+	StopC->num = 2;
 	StopC->toA = 2;
 	StopC->toB = 2;
 	StopC->toC = 3;
@@ -100,6 +90,7 @@ void Init_Route(void)
 	StopC->toC_next = NULL;
 
 	Branch1->position = "Branch1";
+	Branch1->num = 3;
 	Branch1->toA = 1;//这里从Branch2来
 	Branch1->toB = 1;
 	Branch1->toC = 2;//这里从Parking来
@@ -108,6 +99,7 @@ void Init_Route(void)
 	Branch1->toC_next = StopC;
 
 	Branch2->position = "Branch2";
+	Branch2->num = 4;
 	Branch2->toA = 0; //这里从StopC来
 	Branch2->toB = 1; //这里从StopC来
 	Branch2->toC = 0;
@@ -234,7 +226,9 @@ void Update_node(int command)
 	switch (command)//进行左转或右转后，已经到达下一个节点，需要更新信息
 		{
 		case 1:
-			if (current_node->toA_next==NULL)//已经到达停车点位置的前方
+			if (previous_node==Parking&&current_node==Parking)//已经进入停车位
+				reach_parking = true;
+			else if (current_node->toA_next==NULL)//已经到达停车点位置的前方
 				{
 					if (previous_node == Branch1)//如果是从Branch1来的
 					{
@@ -248,13 +242,17 @@ void Update_node(int command)
 					previous_node = previous_node->toA_next;//更新previous节点
 					
 				}
-			else if (previous_node==Parking&&current_node==Parking)//已经进入停车位
-				reach_parking = true;
+
 			else
 				current_node = toA(current_node);//使用toA函数更新节点信息
 			break;
 		case 2:
-			if (current_node->toB_next==NULL)//已经到达停车点位置的前方
+			if (current_node==StopB&&previous_node==StopB)
+			{
+				reach_parking=true;	
+			}
+
+			else if (current_node->toB_next==NULL)//已经到达停车点位置的前方
 				{
 					if (previous_node == Parking)//如果是从Parking来的
 					{
@@ -268,13 +266,15 @@ void Update_node(int command)
 					previous_node = previous_node->toB_next;//更新previous节点
 					
 				}
-			 else if (current_node->toB_next==NULL&&previous_node->toB_next==NULL)			
-				reach_parking=true;
+	
+
 			else
 				current_node = toB(current_node);
 			break;
 		case 3:
-		if (current_node->toC_next==NULL)//已经到达停车点位置的前方
+		if (current_node->toC_next==NULL&&previous_node->toC_next==NULL)
+				reach_parking=true;
+		else if (current_node->toC_next==NULL)//已经到达停车点位置的前方
 				{
 					if (previous_node == Branch1)//如果是从Branch1来的
 					{
@@ -288,8 +288,7 @@ void Update_node(int command)
 					previous_node = previous_node->toC_next;//更新previous节点
 					
 				}
-			else if (current_node->toC_next==NULL&&previous_node->toC_next==NULL)
-				reach_parking=true;
+
 			else
 				current_node = toC(current_node);
 			break;
@@ -310,114 +309,6 @@ void Update_node(int command)
 		*/
 }
 
-void Highspeed_Forward(void)
-{
-	pwm_y1 = highspeed;
-	pwm_y2 = highspeed+FHspeed_Scale;
-	motor1.spin(pwm_y1);   
-	motor2.spin(-pwm_y2);   
-	delay_us(100);
-}
-		
-
-void Lowspeed_Forward(void)
-{
-
-	//pwm_y1 = lowspeed*FLspeed_Scale;
-	//pwm_y2 = lowspeed;
-	pwm_y1 = lowspeed;
-	pwm_y2 = lowspeed;
-	motor1.spin(pwm_y1);   //左轮
-	motor2.spin(-pwm_y2);   //右轮，电机接收的值与左轮相反
-	delay_us(25);
-}
-void Highspeed_Backward(void)
-{
-	pwm_y1 = highspeed;
-	pwm_y2 = highspeed;
-	motor1.spin(-pwm_y1);   
-	motor2.spin(pwm_y2);   //右轮，与左轮接收的值相反
-	delay_us(25);
-}
-
-void Lowspeed_Backward(void) //??
-{
-	pwm_y1 = lowspeed;
-	pwm_y2 = lowspeed;
-	motor1.spin(-pwm_y1);   //????
-	motor2.spin(pwm_y2);   //??????????????????????
-	delay_us(100);
-}
-void Left(void)
-{
-	pwm_y1 = -lowspeed;
-	pwm_y2 = lowspeed;
-	motor1.spin(pwm_y1);   //左轮
-	motor2.spin(-pwm_y2);   //右轮，电机接受的值与左轮相反
-	delay_us(100);
-}
-void Right(void)  //???
-{
-	pwm_y1 = lowspeed;
-	pwm_y2 = -lowspeed;
-	motor1.spin(pwm_y1);   //左轮
-	motor2.spin(-pwm_y2);   //右轮，电机接受的值与左轮相反
-	delay_us(100);
-}
-void Forward_Left(void)
-{
-	pwm_y1 = lowspeed;
-	pwm_y2 = highspeed+10;
-	motor1.spin(pwm_y1);
-	motor2.spin(-pwm_y2);
-	delay_us(100);
-}
-void Forward_Right(void)
-{
-	pwm_y1 = highspeed+10;
-	pwm_y2 = lowspeed;
-	motor1.spin(pwm_y1);
-	motor2.spin(-pwm_y2);
-	delay_us(100);
-}
-void Right_Forward(void)  //与Forward_Right相比更加注重转向
-{
-	pwm_y1 = highspeed+10;
-	pwm_y2 = lowspeed-10;
-	motor1.spin(pwm_y1);
-	motor2.spin(-pwm_y2);
-	delay_us(100);
-}
-void Left_Forward(void)
-{
-	pwm_y1 = lowspeed-10;
-	pwm_y2 = highspeed+10;
-	motor1.spin(pwm_y1);
-	motor2.spin(-pwm_y2);
-	delay_us(100);
-}
-void Backward_Left()
-{
-	pwm_y1 = -lowspeed;
-	pwm_y2 = highspeed;
-	motor1.spin(pwm_y1);
-	motor2.spin(pwm_y2);
-	delay_us(100);
-}
-void Backward_Right(void)
-{
-	pwm_y1 = -highspeed;
-	pwm_y2 = lowspeed;
-	motor1.spin(pwm_y1);
-	motor2.spin(pwm_y2);
-	delay_us(100);
-}
-void Stop(void)
-{
-	motor1.spin(0);
-	motor2.spin(0);
-	delay_us(100);
-}
 
 bool parking_position = false; //是否到达停车位置
 /*
@@ -429,6 +320,7 @@ void parking(int command)
 	#if SECOND_TRACK
 	track2 = TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
 	#endif
+	OLED_ShowString(0,32,"Parking");
 	if (track1!=0)
 	{
 		if (track1!=0)
@@ -473,16 +365,15 @@ void parking(int command)
 				Lowspeed_Backward();
 				delay(200);
 			}
+			/*
+			*！！！！细调的部分可能导致驱动板烧坏，要连续地调整，同时防止速度过快出现惯性
+			*/
 			if (track2<100)//细调
 			{
-				Left();
-				delay(bias_time);
-				Stop();
+				Adjust_Left();
 			}else if (track2>100)
 			{
-				Right();
-				delay(bias_time);
-				Stop();
+				Adjust_Right();
 			}
 			if (track1!=0)//保证后面中间传感器不会又回到循迹线上
 			{
@@ -510,6 +401,12 @@ void parking(int command)
 
 void test_control(int command)
 {
+	if (L_turn_allow)OLED_ShowNumber(0,16,1,1,16);
+	else OLED_ShowNumber(0,16,0,1,16);
+	if (R_turn_allow)OLED_ShowNumber(16,16,1,1,16);
+	else OLED_ShowNumber(16,16,0,1,16);
+
+	
 	//读取超声波雷达
 	UltrasonicWave_StartMeasure();
 	int Distance=(int)distance;
@@ -522,7 +419,78 @@ void test_control(int command)
 	if(!L_Turn_Flag&&!R_Turn_Flag)
 	{
 	#endif
-	if(track2 == 100) 
+	if((track1 == 111)||(track1 == 1111))  // 左转
+	{
+		//如果前方传感器没有感应到黑线，说明没有分岔口；若有分岔口程序允许左转的时候也可以转
+		if (track2 == 0)//单纯的转弯，没有经过分岔口时前方传感器应该是没有检测循迹线的
+		{
+			Stop();
+			delay(100);
+			L_Turn_Flag = 1;
+		}
+		else if (L_turn_allow)//如果检测到分岔口，但是有转向许可
+		{
+			Stop();
+			delay(100);
+			L_Turn_Flag = 1;
+			through_node = true; //走过了分岔口，在过弯后需要更新节点信息
+		}
+		
+		else//既检测到分岔口，又不允许转向，说明程序要求往前走
+		{
+			Lowspeed_Forward();
+			delay(100);//要让它走过那条循迹线，不再判断了
+			Update_node(command);//更新节点信息
+		}
+		
+	}
+	else if((track1 == 11100)||(track1 == 11110)) //右转
+	{
+		if (track2 == 0)
+		{
+			Stop();
+			delay(100);
+			R_Turn_Flag = 1;
+		}
+		else if (R_turn_allow)//如果检测到分岔口，但是有转向许可
+		{
+			Stop();
+			delay(100);
+			R_Turn_Flag = 1;
+			through_node = true; //走过了分岔口，在过弯后需要更新节点信息
+		}
+		
+		else//既检测到分岔口，又不允许转向，说明程序要求往前走
+		{
+			Lowspeed_Forward();
+			delay(100);//要让它走过那条循迹线，不再判断了
+			Update_node(command);//更新节点信息
+		}
+		
+
+	}
+	//T字形分岔口或是到达停车位
+	else if (track1 == 11111&&track2!=11111)
+	{
+		if (L_turn_allow)
+		{
+			Stop();
+			delay(100);
+			L_Turn_Flag = 1;
+		}else if (R_turn_allow)
+		{
+			Stop();
+			delay(100);
+			R_Turn_Flag = 1;
+		}		
+		else
+		{
+			Stop(); //出现错误了，直接停车
+		}
+		through_node = true; //走过了分岔口，在过弯后需要更新节点信息
+	}
+
+	if(track2 == 100) //直行n
 	{
 		if (track1==1000) //车身矫正
 		{
@@ -541,76 +509,6 @@ void test_control(int command)
 			Lowspeed_Forward();
 		}
 
-	}
-	else if((track1 == 111)||(track1 == 1111))  // 左转
-	{
-		//如果前方传感器没有感应到黑线，说明没有分岔口；若有分岔口程序允许左转的时候也可以转
-		if (track2 == 0||L_turn_allow)
-		{
-			Stop();
-			delay(100);
-			#if DELAY_TURN
-			Left();
-			delay(bend_time);
-			#else
-			L_Turn_Flag = 1;
-			#endif
-		}else//不满足要求，说明程序要求往前走
-		{
-			Lowspeed_Forward();
-			delay(100);//要让它走过那条循迹线，不再判断了
-			Update_node(command);//更新节点信息
-		}
-		
-	}
-	else if((track1 == 11100)||(track1 == 11110)) //右转
-	{
-		if (track2 == 0||R_turn_allow)
-		{
-			Stop();
-			delay(100);
-			#if DELAY_TURN
-			Right();
-			delay(bend_time);
-			#else
-			R_Turn_Flag = 1;
-			#endif
-		}else//不满足要求，说明程序要求往前走
-		{
-			Lowspeed_Forward();
-			delay(100);//要让它走过那条循迹线，不再判断了
-			Update_node(command);//更新节点信息
-		}
-		
-
-	}
-	//T字形分岔口或是到达停车位
-	else if (track1 == 11111)
-	{
-		if (L_turn_allow)
-		{
-			Stop();
-			delay(100);
-			L_Turn_Flag = 1;
-		}else if (R_turn_allow)
-		{
-			Stop();
-			delay(100);
-			R_Turn_Flag = 1;
-
-		}
-		/*
-		else if (track2==11111&&reach_parking)
-		{
-			code  
-		}
-		*/
-		
-		else
-		{
-			Stop(); //出现错误了，直接停车
-		}
-		
 	}
 	
 	/*----------------------------偏差调整---------------------------------*/
@@ -718,7 +616,11 @@ void test_control(int command)
 			//delay(100);
 			Right_Forward();
 			delay(200);    
-			Update_node(command);//更新节点信息
+			if(through_node)//过弯，且是走过有分岔口的弯，更新节点信息
+			{
+				Update_node(command);
+				through_node = false;//重置标志位
+			}
 		}
 		cnt++;
 		if (cnt>=200) //防止车一直转
@@ -741,7 +643,11 @@ void test_control(int command)
 			//delay(100);
 			Left_Forward();
 			delay(200);
-			Update_node(command);//更新节点信息
+			if(through_node)//过弯，且是走过有分岔口的弯，更新节点信息
+			{
+				Update_node(command);
+				through_node = false;
+			}
 		}
 		cnt++;
 		if (cnt>=200)

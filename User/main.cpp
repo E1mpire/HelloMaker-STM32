@@ -23,7 +23,7 @@
 #include "drv_uart.h"
 #include "control.h"
 #include "track.h"
-
+#include "movement.h"
  
 
 double required_angular_vel = 0,required_angular_vel_=0;
@@ -256,7 +256,7 @@ bool IsUnloop = true;
 int s1,s2,s3,s4,time;
 
 
-uint8_t REMOTE_CONTROL_FLAG = 1; //·ûºÅÎ»Îª1ÔòÎªÒ£¿ØÆ÷Ä£Ê½
+uint8_t REMOTE_CONTROL_FLAG = 1; //ï¿½ï¿½ï¿½ï¿½Î»Îª1ï¿½ï¿½ÎªÒ£ï¿½ï¿½ï¿½ï¿½Ä£Ê½
 #if BIAS_ADJUST
 void ProjectModeGpioInit(void)
 {
@@ -695,10 +695,10 @@ void RC_Common(void)
      Goal_PSS_RX_VALUE =  map(PulsewidthX-1100,-500,500,-240,240);  
      Goal_PSS_RY_VALUE =  map(PulsewidthY-1100,-500,500,-240,240);
 	#endif
-     if(Goal_PSS_RX_VALUE > 240) Goal_PSS_RX_VALUE = 240;
-     else if(Goal_PSS_RX_VALUE < -240) Goal_PSS_RX_VALUE = -240;
-     if(Goal_PSS_RY_VALUE > 240) Goal_PSS_RY_VALUE = 240;
-     else if(Goal_PSS_RY_VALUE < -240) Goal_PSS_RY_VALUE = -240;
+     if(Goal_PSS_RX_VALUE > 230) Goal_PSS_RX_VALUE = 230;
+     else if(Goal_PSS_RX_VALUE < -230) Goal_PSS_RX_VALUE = -230;
+     if(Goal_PSS_RY_VALUE > 230) Goal_PSS_RY_VALUE = 230;
+     else if(Goal_PSS_RY_VALUE < -230) Goal_PSS_RY_VALUE = -230;
 	#if IBUS_EN || PWM_EN
     if(PulsewidthY > IBUS_MID - STICK_BIAS &&  PulsewidthY < IBUS_MID + STICK_BIAS && PulsewidthX > IBUS_MID - STICK_BIAS &&  PulsewidthX < IBUS_MID + STICK_BIAS)
 	#elif SBUS_EN
@@ -1302,16 +1302,16 @@ void TaskTimeHandle(void)
 /*
 ----------------------------------------------------------------------------------
 */
-// LoRaÏµÊý¶¨Òå
+// LoRaÏµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
-char Remote_on[10] = "12345678";  //¿ªÆôÒ£¿ØÆ÷µÄÖ¸Áî
-char Remote_off[10] = "87654321";  //¹Ø±ÕÒ£¿ØÆ÷½øÈë³ÌÐò¿ØÖÆµÄÖ¸Áî
+char Remote_on[10] = "12345678";  //ï¿½ï¿½ï¿½ï¿½Ò£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½
+char Remote_off[10] = "87654321";  //ï¿½Ø±ï¿½Ò£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æµï¿½Ö¸ï¿½ï¿½
 char LR_Adjust[10] = "44444444";
-char Goto_A[10] = "Go to A"; //È¥²´³µµã
-char Goto_B[10] = "Go to B"; //È¥1ºÅÍ£³µµã
-char Goto_C[10] = "Go to C"; //È¥2ºÅÍ£³µµã
-int command = 1;     //·¢ËÍµÄÖ¸Áî
-extern int current_command = 1;	//µ±Ç°µÄÖ¸Áî  ÖµÉèÖÃÎª1£¬Ä¬ÈÏ´Ó²´³µµã³ö·¢
+char Goto_A[10] = "Go to A"; //È¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+char Goto_B[10] = "Go to B"; //È¥1ï¿½ï¿½Í£ï¿½ï¿½ï¿½ï¿½
+char Goto_C[10] = "Go to C"; //È¥2ï¿½ï¿½Í£ï¿½ï¿½ï¿½ï¿½
+int command = 1;     //ï¿½ï¿½ï¿½Íµï¿½Ö¸ï¿½ï¿½
+extern int current_command = 1;	//ï¿½ï¿½Ç°ï¿½ï¿½Ö¸ï¿½ï¿½  Öµï¿½ï¿½ï¿½ï¿½Îª1ï¿½ï¿½Ä¬ï¿½Ï´Ó²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 uint8_t LoRa_buffer[100] = {0};
 uint8_t RxLength = 0;
 char *Remote_message =  "Remote Control activate!\n";
@@ -1371,12 +1371,12 @@ int main(void)
     InitTimer6();
 	#endif
 
-	// Serial¿Ú³õÊ¼»¯
+	// Serialï¿½Ú³ï¿½Ê¼ï¿½ï¿½
 	SerialPrint.begin(115200);
 	dlProtocol.begin();
-	drv_uart_init(9600);  //LoRaÄ£¿éµÄ²¨ÌØÂÊ¹Ì¶¨Îª9600
-	sonar_init(65535-1,72-1);  //³ÌÐò¹æ¶¨ºÃÁË¼ì²âÖÜÆÚÎª65535Èç¹ûÒª¸ÄÒªÍ¬Ê±¸Ä±äsonar.cppÖÐTIM8IRQÀïµÄ²ÎÊý
-	Track_Init(); //Ñ­¼£Ä£¿é³õÊ¼»¯
+	drv_uart_init(9600);  //LoRaÄ£ï¿½ï¿½Ä²ï¿½ï¿½ï¿½ï¿½Ê¹Ì¶ï¿½Îª9600
+	sonar_init(65535-1,72-1);  //ï¿½ï¿½ï¿½ï¿½æ¶¨ï¿½ï¿½ï¿½Ë¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª65535ï¿½ï¿½ï¿½Òªï¿½ï¿½ÒªÍ¬Ê±ï¿½Ä±ï¿½sonar.cppï¿½ï¿½TIM8IRQï¿½ï¿½Ä²ï¿½ï¿½ï¿½
+	Track_Init(); //Ñ­ï¿½ï¿½Ä£ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½
 	Init_Route();
 
     #if IBUS_EN
@@ -1384,7 +1384,7 @@ int main(void)
     IBus.begin();
 
 	#elif SBUS_EN
-    sBus.begin();// SBUS³õÊ¼»¯
+    sBus.begin();// SBUSï¿½ï¿½Ê¼ï¿½ï¿½
 
 	#elif PWM_EN
 	TIM1_Cap_Init(0xFFFF,72-1);
@@ -1393,7 +1393,7 @@ int main(void)
 	TIM1_Cap_Init(0xFFFF,72-1);
 	#endif
     #if BIAS_ADJUST 
-    Bias_check();  //¶ÁÈ¡Æ«²îÖµ
+    Bias_check();  //ï¿½ï¿½È¡Æ«ï¿½ï¿½Öµ
 	#endif
 	// led????
 	led.on_off(OnOff);
@@ -1409,25 +1409,25 @@ int main(void)
 		if((millis()-previous_LoRa_time)>=20)
 	   {
 		/*
-		*LoRaÍ¨ÐÅÄ£¿é£¬Ã¿20msÖ´ÐÐÒ»´Î
+		*LoRaÍ¨ï¿½ï¿½Ä£ï¿½é£¬Ã¿20msÖ´ï¿½ï¿½Ò»ï¿½ï¿½
 		*/
-		RxLength = drv_uart_rx_bytes(LoRa_buffer); //¼ì²âÊÕµ½ÐÅºÅµÄ³¤¶È
+		RxLength = drv_uart_rx_bytes(LoRa_buffer); //ï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½ÅºÅµÄ³ï¿½ï¿½ï¿½
 		if (RxLength != 0)
 		{
 			//drv_uart_tx_bytes((uint8_t*)LoRa_buffer,RxLength);
-			if (str_cmp(LoRa_buffer,Remote_on))//±È½ÏÖ¸ÁîÊÇ·ñÏàÍ¬£¬Ä¬ÈÏ8Î»Ö¸Áî
+			if (str_cmp(LoRa_buffer,Remote_on))//ï¿½È½ï¿½Ö¸ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½Í¬ï¿½ï¿½Ä¬ï¿½ï¿½8Î»Ö¸ï¿½ï¿½
 			{
 				Stop();
 				OLED_Clear();
 				drv_uart_tx_bytes((uint8_t*)Remote_message, 23+2);
-				REMOTE_CONTROL_FLAG = 1; //½øÈëÒ£¿ØÄ£Ê½
+				REMOTE_CONTROL_FLAG = 1; //ï¿½ï¿½ï¿½ï¿½Ò£ï¿½ï¿½Ä£Ê½
 			}
 			else if (str_cmp(LoRa_buffer,Remote_off))
 			{
 				Stop();
 				OLED_Clear();
 				drv_uart_tx_bytes((uint8_t*)Self_message, 22+2);
-				REMOTE_CONTROL_FLAG = 0;//Ë¢ÐÂ·ûºÅÎ»,ÍË³öÒ£¿ØÄ£Ê½
+				REMOTE_CONTROL_FLAG = 0;//Ë¢ï¿½Â·ï¿½ï¿½ï¿½Î»,ï¿½Ë³ï¿½Ò£ï¿½ï¿½Ä£Ê½
 			}
 			else if (str_cmp(LoRa_buffer,Goto_A))
 			{
@@ -1446,7 +1446,7 @@ int main(void)
 			}
 			else if (str_cmp(LoRa_buffer,LR_Adjust))
 			{
-				Lowspeed_Backward();
+				Lowspeed_Forward();
 			}
 			else
 			{
@@ -1468,7 +1468,7 @@ int main(void)
         if(((millis() - previous_flysky_time) >= 1000 / IBUS_RATE) && REMOTE_CONTROL_FLAG)
         	{
 			/*
-			*³ÌÐò¿ØÖÆÄ£¿é1000/40=25msÖ´ÐÐÒ»´Î
+			*ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ï¿½ï¿½1000/40=25msÖ´ï¿½ï¿½Ò»ï¿½ï¿½
 			*/   
         	  #if IBUS_EN
               ibus_control();     
@@ -1486,17 +1486,16 @@ int main(void)
 		#if (CONNECT_DETEC)
 		if ((millis() - previous_command_time) >= 10 && !REMOTE_CONTROL_FLAG){  
 			/*
-			/³ÌÐò¿ØÖÆ²¿·Ö£¬Ã¿10msÖ´ÐÐÒ»´Î
+			/ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ²ï¿½ï¿½Ö£ï¿½Ã¿10msÖ´ï¿½ï¿½Ò»ï¿½ï¿½
 			*/
+			
 			if (reach_parking)
 			{
-				parking(command);//½øÈëÍ£³µ³ÌÐò µ±ÊÕµ½²»Ò»ÑùµÄÖ¸ÁîÊ±½â³ýreach_parking×´Ì¬
+				parking(command);//ï¿½ï¿½ï¿½ï¿½Í£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½Ê±ï¿½ï¿½ï¿½reach_parking×´Ì¬
 			}else
 			{
 				test_control(current_command);
 			}
-			
-			
 
 		}
 
@@ -1505,7 +1504,7 @@ int main(void)
         if((millis() - previous_movebase_time) >= (1000 / MOVEBASE_RATE))
         	{
 			/*
-			*»ñÈ¡ËÙ¶È£¬µ«ÊÇÒòÎªÃ»ÓÐÂëÅÌËùÒÔÎÞÐ§
+			*ï¿½ï¿½È¡ï¿½Ù¶È£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÎªÃ»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
 			*/   
                getVelocities();
                previous_movebase_time = millis();	  
@@ -1538,7 +1537,7 @@ int main(void)
 		 
 		 if((millis() - previous_oled_time) >= (1000 / OLED_RATE)&& REMOTE_CONTROL_FLAG){
 			/*
-			*OLEDÄ£¿é£¬Ã¿1000/50=20msÖ´ÐÐÒ»´Î
+			*OLEDÄ£ï¿½é£¬Ã¿1000/50=20msÖ´ï¿½ï¿½Ò»ï¿½ï¿½
 			*/ 
 			    static int count ,fresh,num=0;
 				//???????,???????????????????????
@@ -1597,8 +1596,8 @@ int main(void)
 			else if ((millis() - previous_oled_time) >= (1000 / OLED_RATE)&& !REMOTE_CONTROL_FLAG)
 			{
 				OLED_ShowString(0,0,"Snag:");
-				OLED_ShowNumber(0,16,(int)distance,4,16);
-				OLED_ShowString(0,32,"Trace:");
+				//OLED_ShowNumber(0,16,(int)distance,4,16);
+				//OLED_ShowString(0,32,"Trace:");
 				/*
 				if (TRACK1) OLED_ShowNumber(0,48,1,1,16); else if(!TRACK1) OLED_ShowNumber(0,48,0,1,16);
 				if (TRACK2) OLED_ShowNumber(8,48,2,1,16); else if(!TRACK2) OLED_ShowNumber(8,48,0,1,16);
@@ -1623,10 +1622,10 @@ int main(void)
          #endif
          if((millis() - previous_led_time) >= (1000 / LED_RATE)){
             /*
-			*LEDÉÁË¸1000/10=100msÖ´ÐÐÒ»´ÎLEDÄ£¿é
+			*LEDï¿½ï¿½Ë¸1000/10=100msÖ´ï¿½ï¿½Ò»ï¿½ï¿½LEDÄ£ï¿½ï¿½
 			*/   
 			    static bool blink = false, start_blink = true;
-                if((PulsewidthX == 0  || PulsewidthY == 0) &&  PC_start == false)//PC²»ÖªµÀÊÇ¸ÉÊ²Ã´µÄ£¬µ«ÊÇ±ð¶¯Ëü
+                if((PulsewidthX == 0  || PulsewidthY == 0) &&  PC_start == false)//PCï¿½ï¿½Öªï¿½ï¿½ï¿½Ç¸ï¿½Ê²Ã´ï¿½Ä£ï¿½ï¿½ï¿½ï¿½Ç±ï¿½ï¿½ï¿½
 				  {   
 				      blink = !blink;
                       led.on_off(blink);		 
@@ -1642,7 +1641,7 @@ int main(void)
 		   {
 	         if ((millis() - previous_debug_time) >= (1000 / DEBUG_RATE)) {
 				/*
-				*Æ«²îµ÷ÕûÄ£¿é£¬Ã¿1000/10=100msÖ´ÐÐÒ»´Î
+				*Æ«ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é£¬Ã¿1000/10=100msÖ´ï¿½ï¿½Ò»ï¿½ï¿½
 				*/						 
 			     print_debug();
 			     #if BIAS_ADJUST
@@ -1657,7 +1656,7 @@ int main(void)
 		   {
 	         if ((millis() - previous_motorprotec_time) >= (1000 / MOTORPROTEC_RATE)) {						 
 			    /*
-				*½ô¼±Í£³µÄ£¿é£¬Èç¹û³öÏÖµç»ú²»×ªµÈÒì³£Çé¿öÔò½ô¼±Í£³µ
+				*ï¿½ï¿½ï¿½ï¿½Í£ï¿½ï¿½Ä£ï¿½é£¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½ì³£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í£ï¿½ï¿½
 				*/
 				  if((current_rpm1 == 0 && abs(pwm1) >= 240)||( current_rpm2 == 0 && abs(pwm2) >= 240)) i++;
 			      else i = 0;
