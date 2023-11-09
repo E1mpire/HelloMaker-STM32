@@ -91,14 +91,14 @@ void Forward_Right(void)
 void Right_Forward(void)  //与Forward_Right相比更加注重转向
 {
 	pwm_y1 = highspeed+10;
-	pwm_y2 = lowspeed-10;
+	pwm_y2 = lowspeed-15;
 	motor1.spin(pwm_y1);
 	motor2.spin(-pwm_y2);
 	delay_us(100);
 }
 void Left_Forward(void)
 {
-	pwm_y1 = lowspeed-10;
+	pwm_y1 = lowspeed-15;
 	pwm_y2 = highspeed+10;
 	motor1.spin(pwm_y1);
 	motor2.spin(-pwm_y2);
@@ -124,5 +124,14 @@ void Stop(void)
 {
 	motor1.spin(0);
 	motor2.spin(0);
+	delay_us(100);
+}
+
+void Parking_Left()
+{
+	pwm_y1 = -lowspeed+10;
+	pwm_y2 = lowspeed-10;
+	motor1.spin(pwm_y1);   //左轮
+	motor2.spin(-pwm_y2);   //右轮，电机接受的值与左轮相反
 	delay_us(100);
 }

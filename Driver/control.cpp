@@ -14,7 +14,8 @@ int bend_time =850; //转弯时间
 bool L_Turn_Flag = 0;
 bool R_Turn_Flag = 0;
 bool through_node = false;//是否走过分岔口
-int cnt = 0;  //防止过度左转或右转，一个cnt10ms时间
+int cnt = 0;  //防止过度左转或右转，一个cnt1ms时间
+int Stop_cnt = 0;//在非停车函数下感应不到循迹线，超过100ms停车
 #endif
 int track1 = 0; //中间传感器的值
 #if SECOND_TRACK
@@ -63,7 +64,7 @@ Route *previous_node = NULL;  //记录车来源
 void Init_Route(void)
 {
 	Parking->position = "Parking";
-	Parking->num = 0;
+	Parking->num = 1;
 	Parking->toA = 3;
 	Parking->toB = 2;
 	Parking->toC = 1;
@@ -72,7 +73,7 @@ void Init_Route(void)
 	Parking->toC_next = Branch1;
 
 	StopB->position = "StopB";
-	StopB->num = 1;
+	StopB->num = 2;
 	StopB->toA = 1;
 	StopB->toB = 3;
 	StopB->toC = 2;
@@ -81,7 +82,7 @@ void Init_Route(void)
 	StopB->toC_next = Branch2;
 
 	StopC->position = "StopC";
-	StopC->num = 2;
+	StopC->num = 3;
 	StopC->toA = 2;
 	StopC->toB = 2;
 	StopC->toC = 3;
@@ -90,7 +91,7 @@ void Init_Route(void)
 	StopC->toC_next = NULL;
 
 	Branch1->position = "Branch1";
-	Branch1->num = 3;
+	Branch1->num = 4;
 	Branch1->toA = 1;//这里从Branch2来
 	Branch1->toB = 1;
 	Branch1->toC = 2;//这里从Parking来
@@ -99,13 +100,13 @@ void Init_Route(void)
 	Branch1->toC_next = StopC;
 
 	Branch2->position = "Branch2";
-	Branch2->num = 4;
+	Branch2->num = 5;
 	Branch2->toA = 0; //这里从StopC来
 	Branch2->toB = 1; //这里从StopC来
 	Branch2->toC = 0;
 	Branch2->toA_next = Branch1;
 	Branch2->toB_next = StopB;
-	Branch2->toC_next = Branch1;
+	Branch2->toC_next = StopC;
 }
 
 /* 中途改变目标在确定需求前先不做
@@ -321,32 +322,66 @@ void parking(int command)
 	track2 = TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
 	#endif
 	OLED_ShowString(0,32,"Parking");
+		OLED_ShowNumber(0,16,current_node->num,1,16);
+	OLED_ShowNumber(16,16,previous_node->num,1,16);
 	if (track1!=0)
 	{
-		if (track1!=0)
+		if (track2==100)
 		{
-			if (track2==100)
-			{
-				Lowspeed_Forward();
-				delay(8*bias_time);
-			}else if (track2==1000)
-			{
-				Right_Forward();  
-				delay(bias_time);
+			Lowspeed_Forward();
+			delay(8*bias_time);
+		}else if (track2==1000) //停车的偏差调教
+		{
+			Right_Forward();  
+			delay(bias_time);
 
-			}
-			else if (track2==10)
-			{
-				Right_Forward();  
-				delay(bias_time);
-			}
-			if (track2!=0&&track1==0)//因为线不够粗，所以偶尔会出现中间传感器读不到线的情况
-			{
-				Lowspeed_Forward();
-				delay(8*bias_time);
-			}
-			
 		}
+		else if (track2==10)
+		{
+			Right_Forward();  
+			delay(bias_time);
+		}
+		else if (track2==10000)
+		{
+			Right();
+		}
+		else if (track2==1)
+		{
+			Left();
+		}
+		if (track2 == 0)//当前面传感器已经出界时的行进
+		{
+			switch (track1)
+			{
+			case 100:
+				Lowspeed_Forward();
+				break;
+			case 1000:
+				Forward_Right();
+				break;
+			case 10:
+				Forward_Left();
+				break;
+			case 10000:
+				Right();
+				break;
+			case 1:
+				Left();
+				break;
+			default:
+				Lowspeed_Forward();
+				break;
+			}
+		}
+		
+		
+		if (track2!=0&&track1==0)//因为线不够粗，所以偶尔会出现中间传感器读不到线的情况
+		{
+			Lowspeed_Forward();
+			delay(8*bias_time);
+		}
+			
+		
 	}
 	else if (track1 == 0)//此后中间传感器一直为0
 	{
@@ -357,23 +392,26 @@ void parking(int command)
 		    //如果前方传感器没有识别到线，那么应该倒转
 			if (track2==0)
 			{
-				Left();
-				while(track2!=1)//粗调，一直左转直到前面传感器碰到循迹线
+				Parking_Left();
+				while(track2!=100)//粗调，一直左转直到前面传感器碰到循迹线
 					track2=TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;//在此期间不断刷新传感器
 				Stop();
 				delay(200);
 				Lowspeed_Backward();
 				delay(200);
 			}
+
 			/*
 			*！！！！细调的部分可能导致驱动板烧坏，要连续地调整，同时防止速度过快出现惯性
 			*/
-			if (track2<100)//细调
+			while (track2<10)//细调
 			{
 				Adjust_Left();
-			}else if (track2>100)
+				track2=TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
+			}while(track2>100)
 			{
 				Adjust_Right();
+				track2=TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
 			}
 			if (track1!=0)//保证后面中间传感器不会又回到循迹线上
 			{
@@ -386,27 +424,30 @@ void parking(int command)
 		if (track2==100)//只有车停稳之后才接收下一个指令
 		{
 			if (current_command!=command)//接收到新指令时改变状态
-		{
+			{
 
-			current_command = command;//更新命令
-			reach_parking = false;    //刷新状态
-			Update_node(command);     //初始化节点信息
-
-		}
+				current_command = command;//更新命令
+				reach_parking = false;    //刷新状态
+				Update_node(command);     //初始化节点信息
+				OLED_Clear();
+			}
 			
 		}	
 	}
+	if(track2 == 11111&&track1 == 11111) Stop();//车被提起来了，停车
 }
 
 
 void test_control(int command)
 {
-	if (L_turn_allow)OLED_ShowNumber(0,16,1,1,16);
-	else OLED_ShowNumber(0,16,0,1,16);
-	if (R_turn_allow)OLED_ShowNumber(16,16,1,1,16);
-	else OLED_ShowNumber(16,16,0,1,16);
-
 	
+	if (L_turn_allow)OLED_ShowNumber(0,0,1,1,16);
+	else OLED_ShowNumber(0,0,0,1,16);
+	if (R_turn_allow)OLED_ShowNumber(16,0,1,1,16);
+	else OLED_ShowNumber(16,0,0,1,16);
+	
+	OLED_ShowNumber(0,16,current_node->num,1,16);
+	OLED_ShowNumber(16,16,previous_node->num,1,16);
 	//读取超声波雷达
 	UltrasonicWave_StartMeasure();
 	int Distance=(int)distance;
@@ -415,13 +456,19 @@ void test_control(int command)
 	#if SECOND_TRACK
 	track2 = TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
 	#endif
+	if(track1!=0||track2!=0) Stop_cnt=0;//重新找到循迹线，停车计数停止
 	#if !DELAY_TURN
-	if(!L_Turn_Flag&&!R_Turn_Flag)
+	if(!L_Turn_Flag&&!R_Turn_Flag) //没有在进行转向
 	{
 	#endif
+
 	if((track1 == 111)||(track1 == 1111))  // 左转
-	{
-		//如果前方传感器没有感应到黑线，说明没有分岔口；若有分岔口程序允许左转的时候也可以转
+	{	
+		delay(20);
+		track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
+		if ((track1 == 111)||(track1 == 1111))//防止将T形岔口认成左右转
+		{
+			//如果前方传感器没有感应到黑线，说明没有分岔口；若有分岔口程序允许左转的时候也可以转
 		if (track2 == 0)//单纯的转弯，没有经过分岔口时前方传感器应该是没有检测循迹线的
 		{
 			Stop();
@@ -442,11 +489,18 @@ void test_control(int command)
 			delay(100);//要让它走过那条循迹线，不再判断了
 			Update_node(command);//更新节点信息
 		}
+		}
+		
+		
 		
 	}
 	else if((track1 == 11100)||(track1 == 11110)) //右转
 	{
-		if (track2 == 0)
+		delay(15);
+		track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
+		if ((track1 == 11100)||(track1 == 11110))
+		{
+			if (track2 == 0)
 		{
 			Stop();
 			delay(100);
@@ -468,9 +522,12 @@ void test_control(int command)
 		}
 		
 
+		}
+		
+		
 	}
 	//T字形分岔口或是到达停车位
-	else if (track1 == 11111&&track2!=11111)
+	else if (track1 == 11111)
 	{
 		if (L_turn_allow)
 		{
@@ -489,20 +546,19 @@ void test_control(int command)
 		}
 		through_node = true; //走过了分岔口，在过弯后需要更新节点信息
 	}
-
-	if(track2 == 100) //直行n
+	else if(track2 == 100) //直行n
 	{
 		if (track1==1000) //车身矫正
 		{
 			Forward_Right();
-			delay(bias_time);
-			Lowspeed_Forward();
+			//delay(bias_time);
+			//Lowspeed_Forward();
 		}
 		else if (track1==10)
 		{
 			Forward_Left();
-			delay(bias_time);
-			Lowspeed_Forward();
+			//delay(bias_time);
+			//Lowspeed_Forward();
 		}
 		else
 		{
@@ -512,7 +568,7 @@ void test_control(int command)
 	}
 	
 	/*----------------------------偏差调整---------------------------------*/
-	else if (track2 == 1000)//车头左偏
+	else if (track2 == 1000||track2 == 11000)//车头左偏,偶尔会出现在直线上两个灯都被识别的情况
 	{
 		if (track1<100&&track1>0)//中间偏左但是车头偏右
 		{
@@ -521,11 +577,11 @@ void test_control(int command)
 		else
 		{
 			Right_Forward();  
-			delay(bias_time);
-			Lowspeed_Forward();
+			//delay(bias_time);
+			//Lowspeed_Forward();
 		}
 	}
-	else if(track2 == 10)//车身右偏
+	else if(track2 == 10||track2 == 11)//车身右偏
 	{
 		if (track1>100)
 		{
@@ -534,8 +590,8 @@ void test_control(int command)
 		else
 		{
 			Left_Forward();  
-			delay(bias_time);
-			Lowspeed_Forward();
+			//delay(bias_time);
+			//Lowspeed_Forward();
 		}
 	}
 	else if (track2 == 10000)//车身极度左偏
@@ -554,52 +610,56 @@ void test_control(int command)
 	
 	
 	#if SECOND_TRACK
-	else if(track2==0&&track1==1000 ) //前面传感器已经飞出去的情况
+	else if (track2==0)//前面传感器已经飞出去
+	{
+		if (track1==10000||track1==11000)//偶尔出现两个传感器都感应到循迹线的情况
+		{
+			Right();
+			delay(bias_time);
+			Lowspeed_Forward();
+		}
+		else if (track1==1||track1==11)
+		{
+			Left();
+			delay(bias_time);
+			Lowspeed_Forward();
+		}
+		else if(track1==1000) //前面传感器已经飞出去的情况
 	{
 		Right_Forward();
 		delay(bias_time);
 		Lowspeed_Forward();
 
 	}
-	else if (track2==0&&track2==10)
+		else if (track2==10)
 	{
 		Left_Forward();
 		delay(bias_time);
 		Lowspeed_Forward();
 
 	}
-	
-	else if (track2==0&&track1==10000)//传感器飞出去，车身极度偏差
-	{
-		Right();
-		delay(bias_time);
-		Lowspeed_Forward();
-	}
-	else if (track2==0&&track1==1)
-	{
-		Left();
-		delay(bias_time);
-		Lowspeed_Forward();
-	}
-	
-	else if (track2==0&&track1 == 100)
-	{
-		Lowspeed_Forward();
-	}
-	
-	else if(track1 == 0&&track2 == 0)
-	{
-		Stop();
-		#if FIGURE_CHECK
-		l_cnt=0;
+		else if (track1 == 100)
+		{
+			Lowspeed_Forward();
+		}
+		
+		else if(track2 == 0)// 这种状态下不应停车，应该是线走到中间了
+		{
+			Lowspeed_Forward();
+			Stop_cnt++;
+			if(Stop_cnt>=100)
+			{
+				Stop_cnt=0;
+				Stop();
+			}
+			#if FIGURE_CHECK
+			l_cnt=0;
+			#endif
+		}
 		#endif
 	}
-	#else
-	else if(track1 == 0)  //停车
-	{
-		Stop();
-	}
-	#endif
+	
+	
 	/*--------------左转与右转----------------------------*/
 	}
 
@@ -607,7 +667,7 @@ void test_control(int command)
 	if (L_Turn_Flag)//左转标志，为了提高左右转的优先级另外单开
 	{
 		Left();
-		if (track2 == 1)
+		if (track2 == 10)
 		{
 			L_Turn_Flag=0; 
 			cnt = 0;
@@ -635,7 +695,7 @@ void test_control(int command)
 	{
 		Right();
 
-		if (track2 == 10000)
+		if (track2 == 1000)
 		{
 			R_Turn_Flag=0;
 			cnt = 0;
@@ -660,5 +720,5 @@ void test_control(int command)
 	}
 
 	#endif
-	
+	if(track2 == 11111&&track1 == 11111) Stop();//车被提起来了，停车
 }

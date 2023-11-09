@@ -1336,7 +1336,7 @@ int main(void)
 	uint32_t previous_motorprotec_time = 0;
 	uint32_t previous_control_time = 0;
 	uint32_t previous_battery_debug_time = 0;
-
+   
 	char battery_buffer[]= "The voltage is lower than 11.3V,Please charge! ";
 
 
@@ -1484,7 +1484,7 @@ int main(void)
 		    }
 
 		#if (CONNECT_DETEC)
-		if ((millis() - previous_command_time) >= 10 && !REMOTE_CONTROL_FLAG){  
+		if ((millis() - previous_command_time) >= 1 && !REMOTE_CONTROL_FLAG){  
 			/*
 			/������Ʋ��֣�ÿ10msִ��һ��
 			*/
@@ -1595,7 +1595,7 @@ int main(void)
 			}
 			else if ((millis() - previous_oled_time) >= (1000 / OLED_RATE)&& !REMOTE_CONTROL_FLAG)
 			{
-				OLED_ShowString(0,0,"Snag:");
+				//OLED_ShowString(0,0,"Snag:");
 				//OLED_ShowNumber(0,16,(int)distance,4,16);
 				//OLED_ShowString(0,32,"Trace:");
 				/*
