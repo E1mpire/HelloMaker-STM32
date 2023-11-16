@@ -41,6 +41,7 @@ bool Clockside = false;//代表此时车子时顺时针方向巡航
 A是泊车点 B是1号停车点 C是2号停车点 A_B是从泊车点到1号停车点
 */
 //地图路线定义，将每个停车点和分岔口视为节点，包含去往不同停车点的方向以及节点信息
+//Parking的位置应在停车位内，没有走过循迹线
 typedef struct route
 {
 	char* position;
@@ -58,9 +59,8 @@ Route *StopC=(Route*)malloc(sizeof(Route));      //2号停车点
 Route *Branch1=(Route*)malloc(sizeof(Route));    //1号分岔口，靠近瓷砖的那个
 Route *Branch2=(Route*)malloc(sizeof(Route));    //2号分岔口
 Route *current_node = Parking;//默认从泊车点开始
-Route *previous_node = NULL;  //记录车来源
-//Route *Nullptr;
-//Parking的位置应在停车位内，没有走过循迹线
+Route *previous_node = current_node;  //记录车来源
+
 void Init_Route(void)
 {
 	Parking->position = "Parking";
@@ -108,7 +108,33 @@ void Init_Route(void)
 	Branch2->toB_next = StopB;
 	Branch2->toC_next = StopC;
 }
-
+/*
+*手动设置车到停车位的状态
+*/
+void Set_Node(int command)
+{
+	//重新初始化相关变量
+	bool reach_parking = true;
+	bool L_turn_allow = false; 
+	bool R_turn_allow = false;
+	switch (command)
+	{
+	case 1:
+		current_node = Parking;
+		previous_node = Parking;
+		break;
+	case 2:
+		current_node = StopB;
+		previous_node = StopB;
+		break;
+	case 3:
+		current_node = StopC;
+		previous_node = StopC;
+		break;
+	default:
+		break;
+	}
+}
 /* 中途改变目标在确定需求前先不做
 bool Clock_check(char* current_position,char*target_position)
 {
@@ -228,7 +254,10 @@ void Update_node(int command)
 		{
 		case 1:
 			if (previous_node==Parking&&current_node==Parking)//已经进入停车位
-				reach_parking = true;
+			{
+				reach_parking=true;
+				OLED_Clear();
+			}
 			else if (current_node->toA_next==NULL)//已经到达停车点位置的前方
 				{
 					if (previous_node == Branch1)//如果是从Branch1来的
@@ -251,6 +280,7 @@ void Update_node(int command)
 			if (current_node==StopB&&previous_node==StopB)
 			{
 				reach_parking=true;	
+				OLED_Clear();
 			}
 
 			else if (current_node->toB_next==NULL)//已经到达停车点位置的前方
@@ -274,7 +304,10 @@ void Update_node(int command)
 			break;
 		case 3:
 		if (current_node->toC_next==NULL&&previous_node->toC_next==NULL)
+			{
 				reach_parking=true;
+				OLED_Clear();
+			}
 		else if (current_node->toC_next==NULL)//已经到达停车点位置的前方
 				{
 					if (previous_node == Branch1)//如果是从Branch1来的
@@ -321,9 +354,11 @@ void parking(int command)
 	#if SECOND_TRACK
 	track2 = TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
 	#endif
-	OLED_ShowString(0,32,"Parking");
-		OLED_ShowNumber(0,16,current_node->num,1,16);
-	OLED_ShowNumber(16,16,previous_node->num,1,16);
+	
+	OLED_ShowString(0,32,"Parking:");
+	OLED_ShowNumber(0,48,current_node->num,1,16);
+	OLED_ShowNumber(16,48,previous_node->num,1,16);
+	
 	if (track1!=0)
 	{
 		if (track2==100)
@@ -393,7 +428,7 @@ void parking(int command)
 			if (track2==0)
 			{
 				Parking_Left();
-				while(track2!=100)//粗调，一直左转直到前面传感器碰到循迹线
+				while(track2!=100)//粗调，一直左转直到前面传感器碰到循迹线 !!最好不要用while
 					track2=TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;//在此期间不断刷新传感器
 				Stop();
 				delay(200);
@@ -418,6 +453,7 @@ void parking(int command)
 				Lowspeed_Backward();
 				while (track1!=0)
 					track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
+				delay(20);//给予一个20ms冗余，防止二次触发前进程序
 			}
 			
 		}
@@ -441,16 +477,10 @@ void parking(int command)
 void test_control(int command)
 {
 	
-	if (L_turn_allow)OLED_ShowNumber(0,0,1,1,16);
-	else OLED_ShowNumber(0,0,0,1,16);
-	if (R_turn_allow)OLED_ShowNumber(16,0,1,1,16);
-	else OLED_ShowNumber(16,0,0,1,16);
-	
-	OLED_ShowNumber(0,16,current_node->num,1,16);
-	OLED_ShowNumber(16,16,previous_node->num,1,16);
+	OLED_ShowNumber(0,48,current_node->num,1,16);
+	OLED_ShowNumber(16,48,previous_node->num,1,16);
 	//读取超声波雷达
-	UltrasonicWave_StartMeasure();
-	int Distance=(int)distance;
+
     //读取循迹模块
 	track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
 	#if SECOND_TRACK
@@ -647,7 +677,7 @@ void test_control(int command)
 		{
 			Lowspeed_Forward();
 			Stop_cnt++;
-			if(Stop_cnt>=100)
+			if(Stop_cnt>=50)//50ms后停车
 			{
 				Stop_cnt=0;
 				Stop();

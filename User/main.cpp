@@ -1310,6 +1310,9 @@ char LR_Adjust[10] = "44444444";
 char Goto_A[10] = "Go to A"; //ȥ������
 char Goto_B[10] = "Go to B"; //ȥ1��ͣ����
 char Goto_C[10] = "Go to C"; //ȥ2��ͣ����
+char Set_A[10] = "Set A";
+char Set_B[10] = "Set B";
+char Set_C[10] = "Set C";
 int command = 1;     //���͵�ָ��
 extern int current_command = 1;	//��ǰ��ָ��  ֵ����Ϊ1��Ĭ�ϴӲ��������
 uint8_t LoRa_buffer[100] = {0};
@@ -1444,13 +1447,31 @@ int main(void)
 				drv_uart_tx_bytes((uint8_t*)"Now device is going to Stop2\n",28);
 				command = 3;
 			}
+			else if (str_cmp(LoRa_buffer,Set_A))
+			{
+				drv_uart_tx_bytes((uint8_t*)"Now device has been to parking\n",28);
+				Set_Node(1);
+				command = 1;
+			}
+			else if (str_cmp(LoRa_buffer,Set_B))
+			{
+				drv_uart_tx_bytes((uint8_t*)"Now device has been to StopB\n",28);
+				Set_Node(2);
+				command = 2;
+			}
+			else if (str_cmp(LoRa_buffer,Set_C))
+			{
+				drv_uart_tx_bytes((uint8_t*)"Now device has been to StopC\n",28);
+				Set_Node(3);
+				command = 3;
+			}
 			else if (str_cmp(LoRa_buffer,LR_Adjust))
 			{
 				Lowspeed_Forward();
 			}
 			else
 			{
-				drv_uart_tx_bytes((uint8_t*)error_message+2, 28);
+				drv_uart_tx_bytes((uint8_t*)error_message, 28);
 			}
 
 		previous_LoRa_time = millis();
@@ -1488,14 +1509,25 @@ int main(void)
 			/*
 			/������Ʋ��֣�ÿ10msִ��һ��
 			*/
-			
-			if (reach_parking)
+			UltrasonicWave_StartMeasure();
+			int Distance=(int)distance;
+			if (Distance>12)//12cm内有障碍物停车
 			{
-				parking(command);//����ͣ������ ���յ���һ����ָ��ʱ���reach_parking״̬
-			}else
-			{
-				test_control(current_command);
+				if (reach_parking)
+				{
+					parking(command);//����ͣ������ ���յ���һ����ָ��ʱ���reach_parking״̬
+				}else
+				{
+					test_control(current_command);
+				}
 			}
+			else
+			{
+				Stop();
+				drv_uart_tx_bytes((uint8_t*)"There are obstacles ahead",25);  //报告前方有障碍物
+			}
+			
+			
 
 		}
 
@@ -1595,9 +1627,10 @@ int main(void)
 			}
 			else if ((millis() - previous_oled_time) >= (1000 / OLED_RATE)&& !REMOTE_CONTROL_FLAG)
 			{
-				//OLED_ShowString(0,0,"Snag:");
-				//OLED_ShowNumber(0,16,(int)distance,4,16);
-				//OLED_ShowString(0,32,"Trace:");
+				OLED_ShowString(0,0,"Snag:");
+				OLED_ShowNumber(0,16,(int)distance,4,16);
+				OLED_ShowString(0,32,"Node:");
+				
 				/*
 				if (TRACK1) OLED_ShowNumber(0,48,1,1,16); else if(!TRACK1) OLED_ShowNumber(0,48,0,1,16);
 				if (TRACK2) OLED_ShowNumber(8,48,2,1,16); else if(!TRACK2) OLED_ShowNumber(8,48,0,1,16);
@@ -1605,14 +1638,13 @@ int main(void)
 				if (TRACK4) OLED_ShowNumber(24,48,4,1,16); else if(!TRACK4) OLED_ShowNumber(24,48,0,1,16);
 				if (TRACK5) OLED_ShowNumber(32,48,5,1,16); else if(!TRACK5) OLED_ShowNumber(32,48,0,1,16);
 				*/
-				
+				/*
 				if (TRACK6) OLED_ShowNumber(0,48,1,1,16); else if(!TRACK6) OLED_ShowNumber(0,48,0,1,16);
 				if (TRACK7) OLED_ShowNumber(8,48,2,1,16); else if(!TRACK7) OLED_ShowNumber(8,48,0,1,16);
 				if (TRACK8) OLED_ShowNumber(16,48,3,1,16); else if(!TRACK8) OLED_ShowNumber(16,48,0,1,16);
 				if (TRACK9) OLED_ShowNumber(24,48,4,1,16); else if(!TRACK9) OLED_ShowNumber(24,48,0,1,16);
 				if (TRACK10) OLED_ShowNumber(32,48,5,1,16); else if(!TRACK10) OLED_ShowNumber(32,48,0,1,16);
-				
-				//OLED_ShowNumber(0,48,track2,5,16);
+				*/
 				OLED_Refresh_Gram();
 				previous_oled_time = millis();
 			}
