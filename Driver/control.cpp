@@ -422,6 +422,7 @@ void parking(int command)
 	{
 		//停车
 		Stop();
+		static int cnt_back;
 		if (track2!=100)
 		{
 		    //如果前方传感器没有识别到线，那么应该倒转
@@ -452,12 +453,17 @@ void parking(int command)
 			{
 				Lowspeed_Backward();
 				while (track1!=0)
+				{
 					track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
+					if(cnt++>=5000)//超过5000执行，这个函数每1ms调用一次,也就是说最多能转5s
+						break;
+				}
+					
 				delay(20);//给予一个20ms冗余，防止二次触发前进程序
 			}
 			
 		}
-		if (track2==100)//只有车停稳之后才接收下一个指令
+		if (track2==100&&track1==0)//只有车停稳之后才接收下一个指令
 		{
 			if (current_command!=command)//接收到新指令时改变状态
 			{

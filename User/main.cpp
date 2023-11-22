@@ -114,6 +114,7 @@ int Pulsewidth_Bias = 1500;
 
 int ii = 0;
 static int i = 0;
+static int cnt = 1000;
 FUTABA_SBUS sBus;   
 PID motor1_pid(-240, 240, K_P, K_I, K_D);
 PID motor2_pid(-240, 240, K_P, K_I, K_D);
@@ -1317,8 +1318,8 @@ int command = 1;     //���͵�ָ��
 extern int current_command = 1;	//��ǰ��ָ��  ֵ����Ϊ1��Ĭ�ϴӲ��������
 uint8_t LoRa_buffer[100] = {0};
 uint8_t RxLength = 0;
-char *Remote_message =  "Remote Control activate!\n";
-char *Self_message = "Self Control activate!\n";
+char *Remote_message =  "RemoteControl\n";
+char *Self_message = "SelfControl\n";
 char *error_message= "Command in wrong format!\n";
 
 /*---------------------------------------------------------------------------*/
@@ -1401,7 +1402,6 @@ int main(void)
 	// led????
 	led.on_off(OnOff);
 
-	//test_control();
 
 
 	/*-------------------------------???????????------------------------------------------*/
@@ -1422,46 +1422,46 @@ int main(void)
 			{
 				Stop();
 				OLED_Clear();
-				drv_uart_tx_bytes((uint8_t*)Remote_message, 23+2);
+				drv_uart_tx_bytes((uint8_t*)Remote_message, 13);
 				REMOTE_CONTROL_FLAG = 1; //����ң��ģʽ
 			}
 			else if (str_cmp(LoRa_buffer,Remote_off))
 			{
 				Stop();
 				OLED_Clear();
-				drv_uart_tx_bytes((uint8_t*)Self_message, 22+2);
+				drv_uart_tx_bytes((uint8_t*)Self_message, 11);
 				REMOTE_CONTROL_FLAG = 0;//ˢ�·���λ,�˳�ң��ģʽ
 			}
 			else if (str_cmp(LoRa_buffer,Goto_A))
 			{
-				drv_uart_tx_bytes((uint8_t*)"Now device is going to parking\n",30);
+				drv_uart_tx_bytes((uint8_t*)"Gopark\n",6);
 				command = 1;
 			}
 			else if (str_cmp(LoRa_buffer,Goto_B))
 			{
-				drv_uart_tx_bytes((uint8_t*)"Now device is going to Stop1\n",28);
+				drv_uart_tx_bytes((uint8_t*)"GoStop1\n",7);
 				command = 2;
 			}
 			else if (str_cmp(LoRa_buffer,Goto_C))
 			{
-				drv_uart_tx_bytes((uint8_t*)"Now device is going to Stop2\n",28);
+				drv_uart_tx_bytes((uint8_t*)"Gostop2\n",7);
 				command = 3;
 			}
 			else if (str_cmp(LoRa_buffer,Set_A))
 			{
-				drv_uart_tx_bytes((uint8_t*)"Now device has been to parking\n",28);
+				drv_uart_tx_bytes((uint8_t*)"SetPark\n",7);
 				Set_Node(1);
 				command = 1;
 			}
 			else if (str_cmp(LoRa_buffer,Set_B))
 			{
-				drv_uart_tx_bytes((uint8_t*)"Now device has been to StopB\n",28);
+				drv_uart_tx_bytes((uint8_t*)"SetStop1\n",8);
 				Set_Node(2);
 				command = 2;
 			}
 			else if (str_cmp(LoRa_buffer,Set_C))
 			{
-				drv_uart_tx_bytes((uint8_t*)"Now device has been to StopC\n",28);
+				drv_uart_tx_bytes((uint8_t*)"Setstop2\n",8);
 				Set_Node(3);
 				command = 3;
 			}
@@ -1511,7 +1511,7 @@ int main(void)
 			*/
 			UltrasonicWave_StartMeasure();
 			int Distance=(int)distance;
-			if (Distance>12)//12cm内有障碍物停车
+			if (Distance>4)//12cm内有障碍物停车
 			{
 				if (reach_parking)
 				{
@@ -1524,7 +1524,13 @@ int main(void)
 			else
 			{
 				Stop();
-				drv_uart_tx_bytes((uint8_t*)"There are obstacles ahead",25);  //报告前方有障碍物
+				if (cnt>=1000) //程序每1ms执行一次，大约1s间隔报告障碍
+				{
+					drv_uart_tx_bytes((uint8_t*)"There are obstacles ahead",25);  //报告前方有障碍物
+					cnt = 0;//刷新计数
+				}
+				cnt++;
+				
 			}
 			
 			
