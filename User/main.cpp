@@ -1511,7 +1511,7 @@ int main(void)
 			*/
 			UltrasonicWave_StartMeasure();
 			int Distance=(int)distance;
-			if (Distance>4)//12cm内有障碍物停车
+			if (Distance>12)//12cm内有障碍物停车
 			{
 				if (reach_parking)
 				{

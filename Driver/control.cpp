@@ -459,7 +459,7 @@ void parking(int command)
 						break;
 				}
 					
-				delay(20);//给予一个20ms冗余，防止二次触发前进程序
+				delay(100);//给予一个20ms冗余，防止二次触发前进程序
 			}
 			
 		}
@@ -497,8 +497,27 @@ void test_control(int command)
 	if(!L_Turn_Flag&&!R_Turn_Flag) //没有在进行转向
 	{
 	#endif
-
-	if((track1 == 111)||(track1 == 1111))  // 左转
+	//T字形分岔口或是到达停车位
+	if (track1 == 11111)
+	{
+		if (L_turn_allow)
+		{
+			Stop();
+			delay(100);
+			L_Turn_Flag = 1;
+		}else if (R_turn_allow)
+		{
+			Stop();
+			delay(100);
+			R_Turn_Flag = 1;
+		}		
+		else
+		{
+			Stop(); //出现错误了，直接停车
+		}
+		through_node = true; //走过了分岔口，在过弯后需要更新节点信息
+	}
+	else if((track1 == 111)||(track1 == 1111))  // 左转
 	{	
 		delay(20);
 		track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
@@ -562,26 +581,7 @@ void test_control(int command)
 		
 		
 	}
-	//T字形分岔口或是到达停车位
-	else if (track1 == 11111)
-	{
-		if (L_turn_allow)
-		{
-			Stop();
-			delay(100);
-			L_Turn_Flag = 1;
-		}else if (R_turn_allow)
-		{
-			Stop();
-			delay(100);
-			R_Turn_Flag = 1;
-		}		
-		else
-		{
-			Stop(); //出现错误了，直接停车
-		}
-		through_node = true; //走过了分岔口，在过弯后需要更新节点信息
-	}
+	
 	else if(track2 == 100) //直行n
 	{
 		if (track1==1000) //车身矫正
