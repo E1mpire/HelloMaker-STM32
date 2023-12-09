@@ -77,3 +77,19 @@ bool Battery::get_battery_low()
 	else
 		return true;
 }
+/*
+*根据电压读取电池电量，使用涓流表读取，相比线性计算更加准确
+*12V锂电池是3个3.7V电池串联，所以可以用3.7
+*/
+int Battery::get_battery_precent()
+{
+	int battery_precent = 0;
+	double volt = get_volt();
+	//3.7V涓流表拟合的四次公式
+	double battery_capacity = 36.7704*pow(volt,4)-1722.6416*pow(volt,3)+30209.6946*pow(volt,2)-234978.7374*volt+683887.8996;
+	if(battery_capacity>100) battery_capacity=100;
+	if (battery_capacity-(int)battery_capacity>0.5) battery_precent = (int)battery_capacity+1;
+	else battery_precent = (int)battery_capacity;
+	
+	return battery_precent;
+}

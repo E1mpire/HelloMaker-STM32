@@ -18,5 +18,6 @@ void Init_Route(void);
 void test_control(int command);
 void parking(int command);
 void Set_Node(int command);
+void ReportNode(void);
 
 #endif

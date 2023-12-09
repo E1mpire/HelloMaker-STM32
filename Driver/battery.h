@@ -10,7 +10,7 @@ public:
 	float get_volt();
 	float get_battery_notifier();
 	bool get_battery_low();
-
+	int Battery::get_battery_precent();
 private:
 	float threshold;
 	float volt_min;

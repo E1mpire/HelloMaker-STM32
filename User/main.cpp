@@ -32,8 +32,7 @@ int required_linear_throttle,required_angular_throttle;
 bool PC_start  = false;
 bool PC_ControlServo = false;
 
-// ?????
-#define ROTATION_CENTRE 0.5   //??????????   
+#define ROTATION_CENTRE 0.5   //履带车的旋转中心 
 
 
 
@@ -82,7 +81,7 @@ int Uploadvz;
   #define BIAS_ADJUST  0
   #endif
 #endif
-#if LINEAR_ADJUST  //?????????????????????????,?????????????pwm?????????
+#if LINEAR_ADJUST  //基本无作用，不要用
 float F_Slope = 0.00755;
 float B_Slope = 0.0506;
 float F_Const = 0.0;
@@ -102,8 +101,8 @@ u16  DataAddress[2] = {0};
 
 #define READ_BACK_ADDR   0x08019000  
 #define WRITE_BACK_ADDR  0x08019000
-//#define SIZE sizeof(DataAddress)	 	//?1?7?1?7?1?7?A?1?7?1?7
-#define SIZE sizeof(DataAddress) / sizeof(u16)	 		  	//?1?7?1?7?1?7?A?1?7?1?7	
+//#define SIZE sizeof(DataAddress)	 	//数组长度
+#define SIZE sizeof(DataAddress) / sizeof(u16)	 		  	//数组长度	
 
 uint16 f_bias,b_bias=200;
 uint8 data_h,data_l;
@@ -257,7 +256,7 @@ bool IsUnloop = true;
 int s1,s2,s3,s4,time;
 
 
-uint8_t REMOTE_CONTROL_FLAG = 1; //����λΪ1��Ϊң����ģʽ
+uint8_t REMOTE_CONTROL_FLAG = 1; //当它为1时履带车用遥控器控制，默认是遥控器控制
 #if BIAS_ADJUST
 void ProjectModeGpioInit(void)
 {
@@ -552,7 +551,7 @@ int Motor_run(int pwm_x,int pwm_y)
          
    		}
    else{
-		   if( pwm_y > STABLE_NUM_Y)    // ???
+		   if( pwm_y > STABLE_NUM_Y)    // 前进
 		   	 {
 			    
                 #if BIAS_ADJUST
@@ -570,7 +569,7 @@ int Motor_run(int pwm_x,int pwm_y)
 
 
                 #else 
-				int pwm_y0 = pwm_y;   // ?1?7?1?7?1?7?1?7pwm
+				int pwm_y0 = pwm_y;   // 后退
 				int pwm_y1 = pwm_y;   //*0.95;  ---   ?1?7?0?9?1?7?1?7pwm
 				motor1.spin(pwm_y0);
 				motor2.spin(-pwm_y1); 
@@ -581,7 +580,7 @@ int Motor_run(int pwm_x,int pwm_y)
 			    
 				
 		     }
-	       else if(pwm_y < -STABLE_NUM_Y)    // ????
+	       else if(pwm_y < -STABLE_NUM_Y)    //后退
 		   	   {
 		   	     #if BIAS_ADJUST
 		   	     int pwm_y0 = pwm_y *BL_scale;
@@ -637,7 +636,7 @@ void SwitchGpioInit(void)
     GPIO_InitTypeDef  GPIO_InitStructure;
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_15 | GPIO_Pin_14;//PWM SERVO1 / SERVO2 / SERVO3/ SERVO4
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;		  //?1?7?1?7?1?7?1?7?1?7?1?7?1?7
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;		  //推挽输出
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOC, &GPIO_InitStructure);
 	GPIO_SetBits(GPIOC, GPIO_Pin_14); 
@@ -969,25 +968,25 @@ void ibus_control(void)
 #elif PWM_EN
 void pwm_control(void)
 {
-  if(TIM1CH1_CAPTURE_STA&0X80)//?1?7?0?6?1?7?1?7?1?7?1?7?1?7?1?7?1?7?0?5?1?7???1?1?1?7?0?9
+  if(TIM1CH1_CAPTURE_STA&0X80)//成功捕获了一次高电平
    {
 	   temp_x=TIM1CH1_CAPTURE_STA&0X3F;
-	   temp_x*=65536; 				   //?1?7?1?7?1?7?0?2?1?7?1?7?1?7?1?4?1?7
-	   temp_x+=TIM1CH1_CAPTURE_VAL;	   //?1?7?0?1?1?7?1?7?1?9?0?0?1?1?1?7?0?9?0?2?1?7?1?7
+	   temp_x*=65536; 				   //溢出时间总和
+	   temp_x+=TIM1CH1_CAPTURE_VAL;	   //得到的总的高电平时间
 	   if(temp_x > 2200)  temp_x = 1500;
 	   else if(temp_x < 800)  temp_x = 1500;
 	   PulsewidthX = temp_x;
-	   TIM1CH1_CAPTURE_STA=0;		   //?1?7?1?7?1?7?1?7?1?7?1?7?0?5?1?7???1?7?1?7?1?7
+	   TIM1CH1_CAPTURE_STA=0;		   //开启下一次捕获
    }
-   if(TIM2CH3_CAPTURE_STA&0X80)//?1?7?0?6?1?7?1?7?1?7?1?7?1?7?1?7?1?7?0?5?1?7???1?1?1?7?0?9
+   if(TIM2CH3_CAPTURE_STA&0X80)//成功捕获到一次高电平
    {
 	   temp_y=TIM2CH3_CAPTURE_STA&0X3F;
-	   temp_y*=65536; 				   //?1?7?1?7?1?7?0?2?1?7?1?7?1?7?1?4?1?7
-	   temp_y+=TIM2CH3_CAPTURE_VAL;	   //?1?7?0?1?1?7?1?7?1?9?0?0?1?1?1?7?0?9?0?2?1?7?1?7
+	   temp_y*=65536; 				   //溢出时间总和
+	   temp_y+=TIM2CH3_CAPTURE_VAL;	   //得到总的高电平时间 
 	   if(temp_y > 2200)  temp_y = 1500;
 	   else if(temp_y < 800)  temp_y = 1500;
 	   PulsewidthY = temp_y;
-	   TIM2CH3_CAPTURE_STA=0;		   //?1?7?1?7?1?7?1?7?1?7?1?7?0?5?1?7???1?7?1?7?1?7
+	   TIM2CH3_CAPTURE_STA=0;		   //开启下一次捕获
    }
    if(ConnectCheck())return ;
    if(SignalStableCheck())return ;
@@ -1053,8 +1052,7 @@ void CtrModeShow(void)
    #if IBUS_EN
    OLED_ShowString(0,0, "IBUS");
    #elif (SBUS_EN)
-   if(REMOTE_CONTROL_FLAG)  OLED_ShowString(0,0, "SBUS"); //?????????
-   //else OLED_ShowString(0,0, "STM");   // ???????????
+   if(REMOTE_CONTROL_FLAG)  OLED_ShowString(0,0, "SBUS"); //遥控控制时的OLED屏幕显示
    #elif PWM_EN
    OLED_ShowString(0,0, "PWM");
    #elif PPM_EN
@@ -1300,22 +1298,36 @@ void TaskTimeHandle(void)
 	  }
    }
 #endif
+int Battery_Capacity=50;
+char battery_buffer[15]= "Battery ";
+/*
+*电量报告函数，调用后用LoRa串口发送电量信息
+*/
+void BatteryReport(void)
+{
+	Battery_Capacity = bat.get_battery_precent();//读取电池电量
+	battery_buffer[8] = (char)('0'+Battery_Capacity%10); //电量百分比的十位数
+	battery_buffer[9] = (char)('0'+Battery_Capacity/10); //电量百分比的十位数
+
+	drv_uart_tx_bytes((uint8_t*)battery_buffer,10);
+}
 /*
 ----------------------------------------------------------------------------------
 */
-// LoRaϵ������
+// LoRa通信参数设置
 
-char Remote_on[10] = "12345678";  //����ң������ָ��
-char Remote_off[10] = "87654321";  //�ر�ң�������������Ƶ�ָ��
+char Remote_on[10] = "12345678";  //转换到遥控器控制的指令
+char Remote_off[10] = "87654321";  //转换到程序控制的指令
 char LR_Adjust[10] = "44444444";
-char Goto_A[10] = "Go to A"; //ȥ������
-char Goto_B[10] = "Go to B"; //ȥ1��ͣ����
-char Goto_C[10] = "Go to C"; //ȥ2��ͣ����
-char Set_A[10] = "Set A";
-char Set_B[10] = "Set B";
-char Set_C[10] = "Set C";
-int command = 1;     //���͵�ָ��
-extern int current_command = 1;	//��ǰ��ָ��  ֵ����Ϊ1��Ĭ�ϴӲ��������
+char Goto_A[10] = "Go to A"; //前往泊车点的指令
+char Goto_B[10] = "Go to B"; //前往停车点1的指令
+char Goto_C[10] = "Go to C"; //前往停车点2的指令
+char Set_A[10] = "Set A";    //将当前位置设置为泊车点并重置状态
+char Set_B[10] = "Set B";    //将当前位置设置为停车点1并重置状态
+char Set_C[10] = "Set C";    //将当前位置设置为停车点2并重置状态
+char Report[10] = "Report";  //报告当前位置
+int command = 1;     //要输入的目的地，只有当车停稳后才会输入
+extern int current_command = 1;	//当前履带车正在前往的目的地
 uint8_t LoRa_buffer[100] = {0};
 uint8_t RxLength = 0;
 char *Remote_message =  "RemoteControl\n";
@@ -1327,11 +1339,9 @@ int main(void)
 {
 
 	
-	// ????
 	bool OnOff = false;
-	// ???????
     char buffer[50];
-	// ????????????????led??????? 
+	// 计量执行时间的参数初始化
     uint32_t publish_vel_time = 0;
 	uint32_t previous_imu_time = 0;
 	uint32_t previous_oled_time = 0;
@@ -1340,9 +1350,7 @@ int main(void)
 	uint32_t previous_motorprotec_time = 0;
 	uint32_t previous_control_time = 0;
 	uint32_t previous_battery_debug_time = 0;
-   
-	char battery_buffer[]= "The voltage is lower than 11.3V,Please charge! ";
-
+	
 
 	SystemInit();
 	initialise();
@@ -1375,12 +1383,12 @@ int main(void)
     InitTimer6();
 	#endif
 
-	// Serial�ڳ�ʼ��
+	// Serial烧录初始化
 	SerialPrint.begin(115200);
 	dlProtocol.begin();
-	drv_uart_init(9600);  //LoRaģ��Ĳ����ʹ̶�Ϊ9600
-	sonar_init(65535-1,72-1);  //����涨���˼������Ϊ65535���Ҫ��Ҫͬʱ�ı�sonar.cpp��TIM8IRQ��Ĳ���
-	Track_Init(); //ѭ��ģ���ʼ��
+	drv_uart_init(9600);  //LoRa模块初始化，波特率必须是9600
+	sonar_init(65535-1,72-1);  //定时器的预分频值和加载值，如果更改，需要在TIM8的IRQ中相应更改
+	Track_Init(); //循迹模块初始化
 	Init_Route();
 
     #if IBUS_EN
@@ -1388,7 +1396,7 @@ int main(void)
     IBus.begin();
 
 	#elif SBUS_EN
-    sBus.begin();// SBUS��ʼ��
+    sBus.begin();// SBUS控制初始化
 
 	#elif PWM_EN
 	TIM1_Cap_Init(0xFFFF,72-1);
@@ -1397,14 +1405,15 @@ int main(void)
 	TIM1_Cap_Init(0xFFFF,72-1);
 	#endif
     #if BIAS_ADJUST 
-    Bias_check();  //��ȡƫ��ֵ
+    Bias_check();  //偏差检测初始化
 	#endif
-	// led????
+	// led模块开启
 	led.on_off(OnOff);
+	//报告履带车位置
+	ReportNode();
 
 
-
-	/*-------------------------------???????????------------------------------------------*/
+	/*-------------------------------主循环------------------------------------------*/
 	// ?????
 	#if 1
 	while(1)
@@ -1412,54 +1421,54 @@ int main(void)
 		if((millis()-previous_LoRa_time)>=20)
 	   {
 		/*
-		*LoRaͨ��ģ�飬ÿ20msִ��һ��
+		*LoRaͨ通信模块，每20msִ启动溢出
 		*/
-		RxLength = drv_uart_rx_bytes(LoRa_buffer); //����յ��źŵĳ���
-		if (RxLength != 0)
+		RxLength = drv_uart_rx_bytes(LoRa_buffer); //从LoRa接收信息
+		if (RxLength != 0) //如果有信息可以接收
 		{
 			//drv_uart_tx_bytes((uint8_t*)LoRa_buffer,RxLength);
-			if (str_cmp(LoRa_buffer,Remote_on))//�Ƚ�ָ���Ƿ���ͬ��Ĭ��8λָ��
+			if (str_cmp(LoRa_buffer,Remote_on))//比较是否与遥控器模式指令一致
 			{
 				Stop();
 				OLED_Clear();
 				drv_uart_tx_bytes((uint8_t*)Remote_message, 13);
-				REMOTE_CONTROL_FLAG = 1; //����ң��ģʽ
+				REMOTE_CONTROL_FLAG = 1; //进入遥控器模式
 			}
 			else if (str_cmp(LoRa_buffer,Remote_off))
 			{
 				Stop();
 				OLED_Clear();
 				drv_uart_tx_bytes((uint8_t*)Self_message, 11);
-				REMOTE_CONTROL_FLAG = 0;//ˢ�·���λ,�˳�ң��ģʽ
+				REMOTE_CONTROL_FLAG = 0;//进入程序控制模式
 			}
-			else if (str_cmp(LoRa_buffer,Goto_A))
+			else if (str_cmp(LoRa_buffer,Goto_A)) //将目的地设定为泊车点
 			{
 				drv_uart_tx_bytes((uint8_t*)"Gopark\n",6);
 				command = 1;
 			}
-			else if (str_cmp(LoRa_buffer,Goto_B))
+			else if (str_cmp(LoRa_buffer,Goto_B)) //将目的地设定为停车点1
 			{
 				drv_uart_tx_bytes((uint8_t*)"GoStop1\n",7);
 				command = 2;
 			}
-			else if (str_cmp(LoRa_buffer,Goto_C))
+			else if (str_cmp(LoRa_buffer,Goto_C)) //将目的地设定为停车点2
 			{
 				drv_uart_tx_bytes((uint8_t*)"Gostop2\n",7);
 				command = 3;
 			}
-			else if (str_cmp(LoRa_buffer,Set_A))
+			else if (str_cmp(LoRa_buffer,Set_A)) //将履带车位置设置为泊车点
 			{
 				drv_uart_tx_bytes((uint8_t*)"SetPark\n",7);
 				Set_Node(1);
 				command = 1;
 			}
-			else if (str_cmp(LoRa_buffer,Set_B))
+			else if (str_cmp(LoRa_buffer,Set_B)) //将履带车位置设置为停车点1
 			{
 				drv_uart_tx_bytes((uint8_t*)"SetStop1\n",8);
 				Set_Node(2);
 				command = 2;
 			}
-			else if (str_cmp(LoRa_buffer,Set_C))
+			else if (str_cmp(LoRa_buffer,Set_C)) //将履带车位置设置为停车点2
 			{
 				drv_uart_tx_bytes((uint8_t*)"Setstop2\n",8);
 				Set_Node(3);
@@ -1469,6 +1478,11 @@ int main(void)
 			{
 				Lowspeed_Forward();
 			}
+			else if (str_cmp(LoRa_buffer,Report))
+			{
+				ReportNode();
+			}
+			
 			else
 			{
 				drv_uart_tx_bytes((uint8_t*)error_message, 28);
@@ -1489,7 +1503,7 @@ int main(void)
         if(((millis() - previous_flysky_time) >= 1000 / IBUS_RATE) && REMOTE_CONTROL_FLAG)
         	{
 			/*
-			*�������ģ��1000/40=25msִ��һ��
+			*遥控器控制代码，每1000/40=25ms启动一次
 			*/   
         	  #if IBUS_EN
               ibus_control();     
@@ -1507,42 +1521,36 @@ int main(void)
 		#if (CONNECT_DETEC)
 		if ((millis() - previous_command_time) >= 1 && !REMOTE_CONTROL_FLAG){  
 			/*
-			/������Ʋ��֣�ÿ10msִ��һ��
+			/程序控制模块，每1ms执行一次
 			*/
 			UltrasonicWave_StartMeasure();
 			int Distance=(int)distance;
-			if (Distance>12)//12cm内有障碍物停车
-			{
-				if (reach_parking)
-				{
-					parking(command);//����ͣ������ ���յ���һ����ָ��ʱ���reach_parking״̬
-				}else
-				{
-					test_control(current_command);
-				}
-			}
-			else
-			{
-				Stop();
-				if (cnt>=1000) //程序每1ms执行一次，大约1s间隔报告障碍
-				{
-					drv_uart_tx_bytes((uint8_t*)"There are obstacles ahead",25);  //报告前方有障碍物
-					cnt = 0;//刷新计数
-				}
-				cnt++;
-				
-			}
 			
-			
-
+			if (reach_parking) //车是否停稳
+			{
+				parking(command);//只有当车停稳的时候才开始接收下一个目的地
+			}else
+			{
+				test_control(current_command);
+			}
+			previous_command_time = millis();
 		}
+		if ((millis() - previous_battery_debug_time)>=10000)
+		{
+			/*
+			电源检测模块，每10s执行一次
+			*/
+			BatteryReport();
 
+			previous_battery_debug_time = millis();
+		}
+		
 
 		#if 1
         if((millis() - previous_movebase_time) >= (1000 / MOVEBASE_RATE))
         	{
 			/*
-			*��ȡ�ٶȣ�������Ϊû������������Ч
+			*由于没有码盘，这个模块是无效的
 			*/   
                getVelocities();
                previous_movebase_time = millis();	  
@@ -1575,10 +1583,10 @@ int main(void)
 		 
 		 if((millis() - previous_oled_time) >= (1000 / OLED_RATE)&& REMOTE_CONTROL_FLAG){
 			/*
-			*OLEDģ�飬ÿ1000/50=20msִ��һ��
+			*OLED屏幕显示，每1000/50=20msִ刷新一次
 			*/ 
 			    static int count ,fresh,num=0;
-				//???????,???????????????????????
+				//中文部分每执行100次采用刷新一次
 				if (num++ >= 100)
 				{
 					num=0;
@@ -1633,9 +1641,11 @@ int main(void)
 			}
 			else if ((millis() - previous_oled_time) >= (1000 / OLED_RATE)&& !REMOTE_CONTROL_FLAG)
 			{
-				OLED_ShowString(0,0,"Snag:");
-				OLED_ShowNumber(0,16,(int)distance,4,16);
-				OLED_ShowString(0,32,"Node:");
+				OLED_ShowString(0,0,"Ob:");
+				OLED_ShowNumber(16,0,(int)distance,3,16);
+				OLED_ShowString(0,16,"Ba:");
+				OLED_ShowNumber(16,16,bat.get_battery_precent(),3,16);
+				
 				
 				/*
 				if (TRACK1) OLED_ShowNumber(0,48,1,1,16); else if(!TRACK1) OLED_ShowNumber(0,48,0,1,16);
@@ -1660,10 +1670,10 @@ int main(void)
          #endif
          if((millis() - previous_led_time) >= (1000 / LED_RATE)){
             /*
-			*LED��˸1000/10=100msִ��һ��LEDģ��
+			*LED模块˸1000/10=100msִLED闪烁一次，当一段时间没有遥控器信号时信号灯开始闪烁
 			*/   
 			    static bool blink = false, start_blink = true;
-                if((PulsewidthX == 0  || PulsewidthY == 0) &&  PC_start == false)//PC��֪���Ǹ�ʲô�ģ����Ǳ���
+                if((PulsewidthX == 0  || PulsewidthY == 0) &&  PC_start == false)
 				  {   
 				      blink = !blink;
                       led.on_off(blink);		 
@@ -1679,8 +1689,8 @@ int main(void)
 		   {
 	         if ((millis() - previous_debug_time) >= (1000 / DEBUG_RATE)) {
 				/*
-				*ƫ�����ģ�飬ÿ1000/10=100msִ��һ��
-				*/						 
+				*偏差校正模块，当插入接线头时启用，用来调整遥控器控制下履带车左右速度偏差1000/10=100ms启动一次
+				*/
 			     print_debug();
 			     #if BIAS_ADJUST
 				 BiasAdjst();
@@ -1694,7 +1704,7 @@ int main(void)
 		   {
 	         if ((millis() - previous_motorprotec_time) >= (1000 / MOTORPROTEC_RATE)) {						 
 			    /*
-				*����ͣ��ģ�飬������ֵ����ת���쳣��������ͣ��
+				*强制停车，当车轮停止而pwm输入时可能烧坏电机，这个时候强制停车，但没有码盘，这一部分也是无效的
 				*/
 				  if((current_rpm1 == 0 && abs(pwm1) >= 240)||( current_rpm2 == 0 && abs(pwm2) >= 240)) i++;
 			      else i = 0;

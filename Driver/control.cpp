@@ -15,6 +15,7 @@ bool L_Turn_Flag = 0;
 bool R_Turn_Flag = 0;
 bool through_node = false;//是否走过分岔口
 int cnt = 0;  //防止过度左转或右转，一个cnt1ms时间
+int cnt_Obstacle = 0;//
 int Stop_cnt = 0;//在非停车函数下感应不到循迹线，超过100ms停车
 #endif
 int track1 = 0; //中间传感器的值
@@ -341,8 +342,19 @@ void Update_node(int command)
 		else if(!R_turn_allow)OLED_ShowNumber(16,16,0,1,16);
 		OLED_Refresh_Gram();
 		*/
+	ReportNode();
 }
-
+/*
+*用LoRa模块报告履带车位置
+*/
+void ReportNode(void)
+{
+	char Position_report[10] = "Pos ";
+	Position_report[4] = (char)(current_node->num+'0');
+	Position_report[5] = ' ';
+	Position_report[6] = (char)(previous_node->num+'0');
+	drv_uart_tx_bytes((uint8_t*)Position_report,7);
+}
 
 bool parking_position = false; //是否到达停车位置
 /*
@@ -355,7 +367,7 @@ void parking(int command)
 	track2 = TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
 	#endif
 	
-	OLED_ShowString(0,32,"Parking:");
+	OLED_ShowString(0,32,"Park:");
 	OLED_ShowNumber(0,48,current_node->num,1,16);
 	OLED_ShowNumber(16,48,previous_node->num,1,16);
 	
@@ -479,14 +491,15 @@ void parking(int command)
 	if(track2 == 11111&&track1 == 11111) Stop();//车被提起来了，停车
 }
 
-
+int Distance=0;
 void test_control(int command)
 {
-	
+	OLED_ShowString(0,32,"Node:");
 	OLED_ShowNumber(0,48,current_node->num,1,16);
 	OLED_ShowNumber(16,48,previous_node->num,1,16);
 	//读取超声波雷达
-
+	UltrasonicWave_StartMeasure();
+	Distance = (int)distance;
     //读取循迹模块
 	track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
 	#if SECOND_TRACK
@@ -496,206 +509,217 @@ void test_control(int command)
 	#if !DELAY_TURN
 	if(!L_Turn_Flag&&!R_Turn_Flag) //没有在进行转向
 	{
-	#endif
-	//T字形分岔口或是到达停车位
-	if (track1 == 11111)
-	{
-		if (L_turn_allow)
-		{
-			Stop();
-			delay(100);
-			L_Turn_Flag = 1;
-		}else if (R_turn_allow)
-		{
-			Stop();
-			delay(100);
-			R_Turn_Flag = 1;
-		}		
-		else
-		{
-			Stop(); //出现错误了，直接停车
-		}
-		through_node = true; //走过了分岔口，在过弯后需要更新节点信息
-	}
-	else if((track1 == 111)||(track1 == 1111))  // 左转
-	{	
-		delay(20);
-		track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
-		if ((track1 == 111)||(track1 == 1111))//防止将T形岔口认成左右转
-		{
-			//如果前方传感器没有感应到黑线，说明没有分岔口；若有分岔口程序允许左转的时候也可以转
-		if (track2 == 0)//单纯的转弯，没有经过分岔口时前方传感器应该是没有检测循迹线的
-		{
-			Stop();
-			delay(100);
-			L_Turn_Flag = 1;
-		}
-		else if (L_turn_allow)//如果检测到分岔口，但是有转向许可
-		{
-			Stop();
-			delay(100);
-			L_Turn_Flag = 1;
-			through_node = true; //走过了分岔口，在过弯后需要更新节点信息
-		}
-		
-		else//既检测到分岔口，又不允许转向，说明程序要求往前走
-		{
-			Lowspeed_Forward();
-			delay(100);//要让它走过那条循迹线，不再判断了
-			Update_node(command);//更新节点信息
-		}
-		}
-		
-		
-		
-	}
-	else if((track1 == 11100)||(track1 == 11110)) //右转
-	{
-		delay(15);
-		track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
-		if ((track1 == 11100)||(track1 == 11110))
-		{
-			if (track2 == 0)
-		{
-			Stop();
-			delay(100);
-			R_Turn_Flag = 1;
-		}
-		else if (R_turn_allow)//如果检测到分岔口，但是有转向许可
-		{
-			Stop();
-			delay(100);
-			R_Turn_Flag = 1;
-			through_node = true; //走过了分岔口，在过弯后需要更新节点信息
-		}
-		
-		else//既检测到分岔口，又不允许转向，说明程序要求往前走
-		{
-			Lowspeed_Forward();
-			delay(100);//要让它走过那条循迹线，不再判断了
-			Update_node(command);//更新节点信息
-		}
-		
-
-		}
-		
-		
-	}
-	
-	else if(track2 == 100) //直行n
-	{
-		if (track1==1000) //车身矫正
-		{
-			Forward_Right();
-			//delay(bias_time);
-			//Lowspeed_Forward();
-		}
-		else if (track1==10)
-		{
-			Forward_Left();
-			//delay(bias_time);
-			//Lowspeed_Forward();
-		}
-		else
-		{
-			Lowspeed_Forward();
-		}
-
-	}
-	
-	/*----------------------------偏差调整---------------------------------*/
-	else if (track2 == 1000||track2 == 11000)//车头左偏,偶尔会出现在直线上两个灯都被识别的情况
-	{
-		if (track1<100&&track1>0)//中间偏左但是车头偏右
-		{
-			Right_Forward();
-		}
-		else
-		{
-			Right_Forward();  
-			//delay(bias_time);
-			//Lowspeed_Forward();
-		}
-	}
-	else if(track2 == 10||track2 == 11)//车身右偏
-	{
-		if (track1>100)
-		{
-			Left_Forward();
-		}
-		else
-		{
-			Left_Forward();  
-			//delay(bias_time);
-			//Lowspeed_Forward();
-		}
-	}
-	else if (track2 == 10000)//车身极度左偏
-	{
-			Right();
-			delay(LR_bias_time);
-			Lowspeed_Forward();
-	}
-	else if (track2 == 1)//车头极度右偏
-	{
-			Left();
-			delay(LR_bias_time);
-			Lowspeed_Forward();
-
-	}
-	
-	
-	#if SECOND_TRACK
-	else if (track2==0)//前面传感器已经飞出去
-	{
-		if (track1==10000||track1==11000)//偶尔出现两个传感器都感应到循迹线的情况
-		{
-			Right();
-			delay(bias_time);
-			Lowspeed_Forward();
-		}
-		else if (track1==1||track1==11)
-		{
-			Left();
-			delay(bias_time);
-			Lowspeed_Forward();
-		}
-		else if(track1==1000) //前面传感器已经飞出去的情况
-	{
-		Right_Forward();
-		delay(bias_time);
-		Lowspeed_Forward();
-
-	}
-		else if (track2==10)
-	{
-		Left_Forward();
-		delay(bias_time);
-		Lowspeed_Forward();
-
-	}
-		else if (track1 == 100)
-		{
-			Lowspeed_Forward();
-		}
-		
-		else if(track2 == 0)// 这种状态下不应停车，应该是线走到中间了
-		{
-			Lowspeed_Forward();
-			Stop_cnt++;
-			if(Stop_cnt>=50)//50ms后停车
-			{
-				Stop_cnt=0;
-				Stop();
-			}
-			#if FIGURE_CHECK
-			l_cnt=0;
-			#endif
-		}
 		#endif
-	}
-	
-	
+		if (Distance>=12) //如果12cm内没有障碍物
+		{
+				//T字形分岔口或是到达停车位
+			if (track1 == 11111)
+			{
+				if (L_turn_allow)
+				{
+					Stop();
+					delay(100);
+					L_Turn_Flag = 1;
+				}else if (R_turn_allow)
+				{
+					Stop();
+					delay(100);
+					R_Turn_Flag = 1;
+				}		
+				else
+				{
+					Stop(); //出现错误了，直接停车
+				}
+				through_node = true; //走过了分岔口，在过弯后需要更新节点信息
+			}
+			else if((track1 == 111)||(track1 == 1111))  // 左转
+			{	
+				delay(20);
+				track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
+				if ((track1 == 111)||(track1 == 1111))//防止将T形岔口认成左右转
+				{
+					//如果前方传感器没有感应到黑线，说明没有分岔口；若有分岔口程序允许左转的时候也可以转
+				if (track2 == 0)//单纯的转弯，没有经过分岔口时前方传感器应该是没有检测循迹线的
+				{
+					Stop();
+					delay(100);
+					L_Turn_Flag = 1;
+				}
+				else if (L_turn_allow)//如果检测到分岔口，但是有转向许可
+				{
+					Stop();
+					delay(100);
+					L_Turn_Flag = 1;
+					through_node = true; //走过了分岔口，在过弯后需要更新节点信息
+				}
+				
+				else//既检测到分岔口，又不允许转向，说明程序要求往前走
+				{
+					Lowspeed_Forward();
+					delay(100);//要让它走过那条循迹线，不再判断了
+					Update_node(command);//更新节点信息
+				}
+				}
+				
+				
+				
+			}
+			else if((track1 == 11100)||(track1 == 11110)) //右转
+			{
+				delay(15);
+				track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
+				if ((track1 == 11100)||(track1 == 11110))
+				{
+					if (track2 == 0)
+				{
+					Stop();
+					delay(100);
+					R_Turn_Flag = 1;
+				}
+				else if (R_turn_allow)//如果检测到分岔口，但是有转向许可
+				{
+					Stop();
+					delay(100);
+					R_Turn_Flag = 1;
+					through_node = true; //走过了分岔口，在过弯后需要更新节点信息
+				}
+				
+				else//既检测到分岔口，又不允许转向，说明程序要求往前走
+				{
+					Lowspeed_Forward();
+					delay(100);//要让它走过那条循迹线，不再判断了
+					Update_node(command);//更新节点信息
+				}
+				
+
+				}
+				
+				
+			}
+			
+			else if(track2 == 100) //直行n
+			{
+				if (track1==1000) //车身矫正
+				{
+					Forward_Right();
+					//delay(bias_time);
+					//Lowspeed_Forward();
+				}
+				else if (track1==10)
+				{
+					Forward_Left();
+					//delay(bias_time);
+					//Lowspeed_Forward();
+				}
+				else
+				{
+					Lowspeed_Forward();
+				}
+
+			}
+			
+			/*----------------------------偏差调整---------------------------------*/
+			else if (track2 == 1000||track2 == 11000)//车头左偏,偶尔会出现在直线上两个灯都被识别的情况
+			{
+				if (track1<100&&track1>0)//中间偏左但是车头偏右
+				{
+					Right_Forward();
+				}
+				else
+				{
+					Right_Forward();  
+					//delay(bias_time);
+					//Lowspeed_Forward();
+				}
+			}
+			else if(track2 == 10||track2 == 11)//车身右偏
+			{
+				if (track1>100)
+				{
+					Left_Forward();
+				}
+				else
+				{
+					Left_Forward();  
+					//delay(bias_time);
+					//Lowspeed_Forward();
+				}
+			}
+			else if (track2 == 10000)//车身极度左偏
+			{
+					Right();
+					delay(LR_bias_time);
+					Lowspeed_Forward();
+			}
+			else if (track2 == 1)//车头极度右偏
+			{
+					Left();
+					delay(LR_bias_time);
+					Lowspeed_Forward();
+
+			}
+			
+			
+			#if SECOND_TRACK
+			else if (track2==0)//前面传感器已经飞出去
+			{
+				if (track1==10000||track1==11000)//偶尔出现两个传感器都感应到循迹线的情况
+				{
+					Right();
+					delay(bias_time);
+					Lowspeed_Forward();
+				}
+				else if (track1==1||track1==11)
+				{
+					Left();
+					delay(bias_time);
+					Lowspeed_Forward();
+				}
+				else if(track1==1000) //前面传感器已经飞出去的情况
+			{
+				Right_Forward();
+				delay(bias_time);
+				Lowspeed_Forward();
+
+			}
+				else if (track2==10)
+			{
+				Left_Forward();
+				delay(bias_time);
+				Lowspeed_Forward();
+
+			}
+				else if (track1 == 100)
+				{
+					Lowspeed_Forward();
+				}
+				
+				else if(track2 == 0)// 这种状态下不应停车，应该是线走到中间了
+				{
+					Lowspeed_Forward();
+					Stop_cnt++;
+					if(Stop_cnt>=50)//50ms后停车
+					{
+						Stop_cnt=0;
+						Stop();
+					}
+					#if FIGURE_CHECK
+					l_cnt=0;
+					#endif
+				}
+				#endif
+			}
+		}else
+		{
+			Stop();
+			if (cnt_Obstacle>=1000) //程序每1ms执行一次，大约1s间隔报告障碍
+				{
+					drv_uart_tx_bytes((uint8_t*)"There are obstacles ahead",25);  //报告前方有障碍物
+					cnt_Obstacle = 0;//刷新计数
+				}
+				cnt_Obstacle++;
+		}
+		
 	/*--------------左转与右转----------------------------*/
 	}
 
