@@ -1306,8 +1306,8 @@ char battery_buffer[15]= "Battery ";
 void BatteryReport(void)
 {
 	Battery_Capacity = bat.get_battery_precent();//读取电池电量
-	battery_buffer[8] = (char)('0'+Battery_Capacity%10); //电量百分比的十位数
-	battery_buffer[9] = (char)('0'+Battery_Capacity/10); //电量百分比的十位数
+	battery_buffer[8] = (char)('0'+Battery_Capacity/10); //电量百分比的十位数
+	battery_buffer[9] = (char)('0'+Battery_Capacity%10); //电量百分比的十位数
 
 	drv_uart_tx_bytes((uint8_t*)battery_buffer,10);
 }
@@ -1326,6 +1326,7 @@ char Set_A[10] = "Set A";    //将当前位置设置为泊车点并重置状态
 char Set_B[10] = "Set B";    //将当前位置设置为停车点1并重置状态
 char Set_C[10] = "Set C";    //将当前位置设置为停车点2并重置状态
 char Report[10] = "Report";  //报告当前位置
+char Battery_Report[15] = "BatteryReport";//报告电池电量
 int command = 1;     //要输入的目的地，只有当车停稳后才会输入
 extern int current_command = 1;	//当前履带车正在前往的目的地
 uint8_t LoRa_buffer[100] = {0};
@@ -1474,13 +1475,17 @@ int main(void)
 				Set_Node(3);
 				command = 3;
 			}
-			else if (str_cmp(LoRa_buffer,LR_Adjust))
+			else if (str_cmp(LoRa_buffer,LR_Adjust))//看看左右轮速度一不一样
 			{
 				Lowspeed_Forward();
 			}
-			else if (str_cmp(LoRa_buffer,Report))
+			else if (str_cmp(LoRa_buffer,Report)) //报告位置
 			{
 				ReportNode();
+			}
+			else if (str_cmp(LoRa_buffer,Battery_Report)) //报告电量
+			{
+				BatteryReport();
 			}
 			
 			else
