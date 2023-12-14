@@ -8,7 +8,7 @@
 #include "config.h"
 #include "motor.h"
 
-
+void Slowspeed_Forward(void);
 void Highspeed_Forward(void);
 void Lowspeed_Forward(void);
 void Highspeed_Backward(void);
@@ -22,6 +22,5 @@ void Left_Forward(void);
 void Adjust_Left(void);
 void Adjust_Right(void);
 void Stop(void);
-void Parking_Left();
-
+void Parking_Left(void);
 #endif

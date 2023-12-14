@@ -8,6 +8,13 @@
 int Right_Figure=0,Left_Figure=0;  //用于调整车身偏差的姿态
 int bias_time=50; //偏离轨道时调整的时间
 int LR_bias_time = 20;//使用左右转弯时调整的时间
+
+bool ShiftSpeedFlag = false; //进入变速模式标志
+extern int SpeedGear;
+int SpeedGear = 1;
+
+int cnt_Obstacle = 1000;//报告障碍间隔
+
 #if DELAY_TURN
 int bend_time =850; //转弯时间
 #else
@@ -15,7 +22,7 @@ bool L_Turn_Flag = 0;
 bool R_Turn_Flag = 0;
 bool through_node = false;//是否走过分岔口
 int cnt = 0;  //防止过度左转或右转，一个cnt1ms时间
-int cnt_Obstacle = 0;//
+
 int Stop_cnt = 0;//在非停车函数下感应不到循迹线，超过100ms停车
 #endif
 int track1 = 0; //中间传感器的值
@@ -356,21 +363,47 @@ void ReportNode(void)
 	drv_uart_tx_bytes((uint8_t*)Position_report,7);
 }
 
+/*
+* 高速模式的启用,1为高速，0为普通
+*/
+void ShiftSpeedMode(void)
+{
+	if (current_node->num==3&&previous_node->num==4) 
+	{
+		if(!ShiftSpeedFlag) drv_uart_tx_bytes((uint8_t*)"ShiftSpeed",10); //报告	
+		ShiftSpeedFlag = true; //进入变速路段，开启变速
+		
+	}
+	
+	if (ShiftSpeedFlag)//在进入了变速模式的情况下
+	{
+		if (current_node->num==3&&previous_node->num==3&&((track2 == 11100)||(track2 == 11110)))
+		{
+			ShiftSpeedFlag = false; //当准备进入往停车点2的第一个弯时停止变速
+			drv_uart_tx_bytes((uint8_t*)"QuitShift",9);
+		}	
+			
+		
+	}
+	
+}
+
 bool parking_position = false; //是否到达停车位置
 /*
 * 到达停车位节点后，转一个弯进入停车位内，然后进入停车程序
 */
 void parking(int command)
 {
+	//刷新循迹模块
 	track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
 	#if SECOND_TRACK
 	track2 = TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
 	#endif
-	
+	//OLED屏幕更新
 	OLED_ShowString(0,32,"Park:");
 	OLED_ShowNumber(0,48,current_node->num,1,16);
 	OLED_ShowNumber(16,48,previous_node->num,1,16);
-	
+
 	if (track1!=0)
 	{
 		if (track2==100)
@@ -494,12 +527,17 @@ void parking(int command)
 int Distance=0;
 void test_control(int command)
 {
+	//检测变速路段
+	ShiftSpeedMode();
+	//更新OLED屏
 	OLED_ShowString(0,32,"Node:");
 	OLED_ShowNumber(0,48,current_node->num,1,16);
 	OLED_ShowNumber(16,48,previous_node->num,1,16);
+
 	//读取超声波雷达
 	UltrasonicWave_StartMeasure();
 	Distance = (int)distance;
+
     //读取循迹模块
 	track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
 	#if SECOND_TRACK
@@ -512,6 +550,7 @@ void test_control(int command)
 		#endif
 		if (Distance>=12) //如果12cm内没有障碍物
 		{
+			cnt_Obstacle = 1000;//重置障碍报告计数
 				//T字形分岔口或是到达停车位
 			if (track1 == 11111)
 			{
@@ -534,7 +573,7 @@ void test_control(int command)
 			}
 			else if((track1 == 111)||(track1 == 1111))  // 左转
 			{	
-				delay(20);
+				delay(15);
 				track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
 				if ((track1 == 111)||(track1 == 1111))//防止将T形岔口认成左右转
 				{
@@ -597,7 +636,7 @@ void test_control(int command)
 				
 			}
 			
-			else if(track2 == 100) //直行n
+			else if((track2 == 100)||(track2 == 110)||(track2 == 1100)) //直行 不知为何两条线的情况多了起来
 			{
 				if (track1==1000) //车身矫正
 				{
@@ -610,6 +649,24 @@ void test_control(int command)
 					Forward_Left();
 					//delay(bias_time);
 					//Lowspeed_Forward();
+				}
+				else if (ShiftSpeedFlag) //变速模式
+				{
+					switch (SpeedGear)
+					{
+					case 2:
+						Highspeed_Forward();
+						break;
+					case 1:
+						Lowspeed_Forward();
+						break;
+					case 0:
+						Slowspeed_Forward();
+						break;
+					default:
+						Lowspeed_Forward();
+						break;
+					}
 				}
 				else
 				{
@@ -682,7 +739,7 @@ void test_control(int command)
 				Lowspeed_Forward();
 
 			}
-				else if (track2==10)
+				else if (track1==10)
 			{
 				Left_Forward();
 				delay(bias_time);

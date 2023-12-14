@@ -12,16 +12,25 @@ float BLspeed_Scale=2;
 // 高速和低速的基准pwm值
 int highspeed = 130;
 int lowspeed = 100;  //正常设置为100
-int ex_lowspeed = 80;
-int ex_highspeed = 200;
+int slowspeed = 80;
+
 
 int pwm_y1;
 int pwm_y2;
 
+void Slowspeed_Forward(void)
+{
+	pwm_y1 = slowspeed;
+	pwm_y2 = slowspeed;
+	motor1.spin(pwm_y1);   
+	motor2.spin(-pwm_y2);   
+	delay_us(100);
+}
+
 void Highspeed_Forward(void)
 {
-	pwm_y1 = highspeed;
-	pwm_y2 = highspeed+FHspeed_Scale;
+	pwm_y1 = highspeed+10;
+	pwm_y2 = highspeed+10;
 	motor1.spin(pwm_y1);   
 	motor2.spin(-pwm_y2);   
 	delay_us(100);
@@ -127,7 +136,7 @@ void Stop(void)
 	delay_us(100);
 }
 
-void Parking_Left()
+void Parking_Left(void)
 {
 	pwm_y1 = -lowspeed+10;
 	pwm_y2 = lowspeed-10;

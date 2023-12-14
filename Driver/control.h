@@ -13,11 +13,11 @@
 #include  "oled.h"
 
 extern bool reach_parking;  //是否到达停车点//停车标志位，停好车了才能发送下一个目的地
+extern int SpeedGear;//默认普通挡位
 
 void Init_Route(void);
 void test_control(int command);
 void parking(int command);
 void Set_Node(int command);
 void ReportNode(void);
-
 #endif
