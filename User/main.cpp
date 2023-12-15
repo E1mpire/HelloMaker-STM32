@@ -124,6 +124,8 @@ Battery bat(25, 10.6, 12.6);
 Kinematics kinematics(MAX_RPM, WHEEL_DIAMETER, BASE_WIDTH,FR_WHEELS_DISTANCE, LR_WHEELS_DISTANCE);
 Led led;
 dl_msgs::Velocities raw_vel_msg;
+int Speed_x;
+int Speed_y;
 Kinematics::rpm req_rpm;
 FlySkyIBus IBus;
 Protocol dlProtocol;
@@ -324,7 +326,9 @@ void getVelocities()
   current_rpm2 = encoder2.getRPM();
   #endif
   Kinematics::velocities current_vel;
-  current_vel = kinematics.getVelocities(current_rpm1, current_rpm2);
+  current_vel = kinematics.getVelocities(current_rpm1, current_rpm1);//目前只使用了一个码盘，所以两个都是1
+  Speed_x = current_vel.linear_x;
+  Speed_y = current_vel.linear_y;
   raw_vel_msg.linear_x = current_vel.linear_x;
   raw_vel_msg.linear_y = 0.0;
   raw_vel_msg.angular_z = current_vel.angular_z;
@@ -1651,7 +1655,7 @@ int main(void)
 					  OLED_ShowNumber(0, 48, PulsewidthX,4,16);
 					  OLED_ShowNumber(0, 32, PulsewidthY,4,16);
 					  #if SBUS_EN || IBUS_EN || PPM_EN
-					  OLED_ShowNumber(0, 16, Pulsewidth_Power,4,16);
+					  OLED_ShowNumber(0, 16, Speed_x,4,16);
 					  #endif
 			          OLED_Refresh_Gram();
 				  }
@@ -1668,7 +1672,7 @@ int main(void)
 				OLED_ShowString(0,0,"Ob:");
 				OLED_ShowNumber(16,0,(int)distance,3,16);
 				OLED_ShowString(0,16,"Ba:");
-				OLED_ShowNumber(16,16,bat.get_battery_precent(),3,16);
+				OLED_ShowNumber(16,16,(int)bat.get_battery_precent(),3,16);
 				
 				
 				/*

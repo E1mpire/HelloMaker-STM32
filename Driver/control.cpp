@@ -504,7 +504,7 @@ void parking(int command)
 						break;
 				}
 					
-				delay(100);//给予一个20ms冗余，防止二次触发前进程序
+				delay(200);//给予一个20ms冗余，防止二次触发前进程序
 			}
 			
 		}
@@ -548,7 +548,7 @@ void test_control(int command)
 	if(!L_Turn_Flag&&!R_Turn_Flag) //没有在进行转向
 	{
 		#endif
-		if (Distance>=12) //如果12cm内没有障碍物
+		if (Distance>=-1) //如果12cm内没有障碍物
 		{
 			cnt_Obstacle = 1000;//重置障碍报告计数
 				//T字形分岔口或是到达停车位
