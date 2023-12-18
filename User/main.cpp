@@ -1466,18 +1466,21 @@ int main(void)
 				drv_uart_tx_bytes((uint8_t*)"SetPark\n",7);
 				Set_Node(1);
 				command = 1;
+				current_command = 1;
 			}
 			else if (str_cmp(LoRa_buffer,Set_B)) //将履带车位置设置为停车点1
 			{
 				drv_uart_tx_bytes((uint8_t*)"SetStop1\n",8);
 				Set_Node(2);
 				command = 2;
+				current_command = 2;
 			}
 			else if (str_cmp(LoRa_buffer,Set_C)) //将履带车位置设置为停车点2
 			{
 				drv_uart_tx_bytes((uint8_t*)"Setstop2\n",8);
 				Set_Node(3);
 				command = 3;
+				current_command = 3;
 			}
 			else if (str_cmp(LoRa_buffer,LR_Adjust))//看看左右轮速度一不一样
 			{
