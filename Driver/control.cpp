@@ -21,7 +21,8 @@ int bend_time =850; //转弯时间
 bool L_Turn_Flag = 0;
 bool R_Turn_Flag = 0;
 bool through_node = false;//是否走过分岔口
-int cnt = 0;  //防止过度左转或右转，一个cnt1ms时间
+int lr_cnt = 0;  //防止过度左转或右转，一个cnt1ms时间
+int b_cnt = 0;//后退计时
 
 int Stop_cnt = 0;//在非停车函数下感应不到循迹线，超过100ms停车
 #endif
@@ -502,7 +503,7 @@ void parking(int command)
 				while (track1!=0)
 				{
 					track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
-					if(cnt++>=5000)//超过5000执行，这个函数每1ms调用一次,也就是说最多能转5s
+					if(b_cnt++>=5000)//超过5000执行，这个函数每1ms调用一次,也就是说最多能转5s
 						break;
 				}
 					
@@ -536,7 +537,7 @@ void parking(int command)
 				while (track1!=0)
 				{
 					track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
-					if(cnt++>=5000)//超过5000执行，这个函数每1ms调用一次,也就是说最多能转5s
+					if(b_cnt++>=5000)//超过5000执行，这个函数每1ms调用一次,也就是说最多能转5s
 						break;
 				}
 					
@@ -614,7 +615,7 @@ void test_control(int command)
 					delay(100);
 					L_Turn_Flag = 1;
 					//Left();
-					//delay(200);//先转一下，防止过早结束旋转
+					//delay(1000);//先转一下，防止过早结束旋转
 				}
 				else if (L_turn_allow)//如果检测到分岔口，但是有转向许可
 				{
@@ -622,7 +623,7 @@ void test_control(int command)
 					delay(100);
 					L_Turn_Flag = 1;
 					//Left();
-					//delay(200);//先转一下，防止过早结束旋转
+					//delay(1000);//先转一下，防止过早结束旋转
 					through_node = true; //走过了分岔口，在过弯后需要更新节点信息
 				}
 				
@@ -650,16 +651,16 @@ void test_control(int command)
 					Stop();
 					delay(100);
 					R_Turn_Flag = 1;
-					Right();
-					delay(200);//先转一下，防止过早结束旋转
+					//Right();
+					//delay(1000);//先转一下，防止过早结束旋转
 				}
 				else if (R_turn_allow)//如果检测到分岔口，但是有转向许可
 				{
 					Stop();
 					delay(100);
 					R_Turn_Flag = 1;
-					Right();
-					delay(200);//先转一下，防止过早结束旋转
+					//Right();
+					//delay(1000);//先转一下，防止过早结束旋转
 					through_node = true; //走过了分岔口，在过弯后需要更新节点信息
 				}
 				
@@ -797,7 +798,7 @@ void test_control(int command)
 					Stop_cnt++;
 					if(Stop_cnt>=50)//50ms后停车
 					{
-						Stop_cnt=0;
+						//Stop_cnt=0;
 						Stop();
 					}
 					#if FIGURE_CHECK
@@ -816,6 +817,7 @@ void test_control(int command)
 				}
 				cnt_Obstacle++;
 		}
+		if (track1!=0||track2!=0) Stop_cnt=0;//重置停止次数
 		
 	/*--------------左转与右转----------------------------*/
 	}
@@ -830,9 +832,9 @@ void test_control(int command)
 		//if (track2 == 10&&Edge_Statue)
 		if (track2 == 10)
 		{
-			Edge_Statue = false;
+			//Edge_Statue = false;
 			L_Turn_Flag=0; 
-			cnt = 0;
+			lr_cnt = 0;
 
 			//Lowspeed_Forward();//为了让中间传感器走过循迹线，不误触发转向
 			//delay(100);
@@ -844,12 +846,12 @@ void test_control(int command)
 				through_node = false;//重置标志位
 			}
 		}
-		cnt++;
-		if (cnt>=200) //防止车一直转
+		lr_cnt++;
+		if (lr_cnt>=200) //防止车一直转
 		{
 			Stop();
 			L_Turn_Flag=0;
-			cnt=0;
+			lr_cnt=0;
 		}//左转完成
 	
 		
@@ -864,7 +866,7 @@ void test_control(int command)
 		{
 			//Edge_Statue = false;
 			R_Turn_Flag=0;
-			cnt = 0;
+			lr_cnt = 0;
 			//Lowspeed_Forward();
 			//delay(100);
 			Left_Forward();
@@ -875,12 +877,12 @@ void test_control(int command)
 				through_node = false;
 			}
 		}
-		cnt++;
-		if (cnt>=200)
+		lr_cnt++;
+		if (lr_cnt>=200)
 		{
 			Stop();
 			R_Turn_Flag=0;
-			cnt=0;
+			lr_cnt=0;
 		}
 
 	}
