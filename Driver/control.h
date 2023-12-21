@@ -21,4 +21,5 @@ void test_control(int command);
 void parking(int command);
 void Set_Node(int command);
 void ReportNode(void);
+int GetVelocity(void);
 #endif

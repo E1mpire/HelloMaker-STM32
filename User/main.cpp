@@ -1672,7 +1672,7 @@ int main(void)
 				OLED_ShowString(0,0,"Ob:");
 				OLED_ShowNumber(16,0,(int)distance,3,16);
 				OLED_ShowString(0,16,"Ba:");
-				OLED_ShowNumber(16,16,(int)bat.get_battery_precent(),3,16);
+				OLED_ShowNumber(16,16,GetVelocity(),3,16);
 				
 				
 				/*
