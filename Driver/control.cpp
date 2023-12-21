@@ -370,8 +370,12 @@ void ShiftSpeedMode(void)
 {
 	if (current_node->num==3&&previous_node->num==4) 
 	{
-		if(!ShiftSpeedFlag) drv_uart_tx_bytes((uint8_t*)"ShiftSpeed",10); //报告	
-		ShiftSpeedFlag = true; //进入变速路段，开启变速
+		if(!ShiftSpeedFlag) 
+		{
+			drv_uart_tx_bytes((uint8_t*)"ShiftSpeed",10); //报告	
+			ShiftSpeedFlag = true; //进入变速路段，开启变速
+		}
+
 		
 	}
 	
@@ -388,7 +392,62 @@ void ShiftSpeedMode(void)
 	
 }
 
-bool parking_position = false; //是否到达停车位置
+/*编码器变量，用于读取转速*/
+Encoder LFWheel(ENCODER1, 0xffff, 0, LCOUNTS_PER_REV);
+int Left_RPM;//左轮转速
+int forward_velocity;
+char velocity_Report[15];
+/*输入车轮转速，得到速度*/
+int GetVelocity(void)
+{
+	Left_RPM = LFWheel.getRPM();
+	float Forward_velocity;  
+	float circum_wheel = WHEEL_DIAMETER*PI;//车轮周长
+	Forward_velocity = Left_RPM/60*circum_wheel; //RPM是车轮每分钟转过的角度，化为s，最终输出m/s
+	if (Forward_velocity-(int)Forward_velocity>=0.5)
+	{
+		return (int)Forward_velocity+1;
+	}else
+	{
+		return (int)Forward_velocity;
+	}
+	
+}
+/*把int转化为字符串方便输出*/
+void intToString(int num, char *str) {
+    int i = 0;
+    int isNegative = 0;
+
+    // 处理负数情况
+    if (num < 0) {
+        isNegative = 1;
+        num = -num;
+    }
+
+    // 将每一位数字存储到字符数组中
+    do {
+        str[i++] = num % 10 + '0';
+        num /= 10;
+    } while (num > 0);
+
+    // 添加负号
+    if (isNegative) {
+        str[i++] = '-';
+    }
+
+    // 反转字符数组
+    int start = 0;
+    int end = i - 1;
+    while (start < end) {
+        char temp = str[start];
+        str[start] = str[end];
+        str[end] = temp;
+        start++;
+        end--;
+    }
+
+}
+
 /*
 * 到达停车位节点后，转一个弯进入停车位内，然后进入停车程序
 */
@@ -524,6 +583,7 @@ void parking(int command)
 	if(track2 == 11111&&track1 == 11111) Stop();//车被提起来了，停车
 }
 
+
 int Distance=0;
 void test_control(int command)
 {
@@ -638,6 +698,12 @@ void test_control(int command)
 			
 			else if((track2 == 100)||(track2 == 110)||(track2 == 1100)) //直行 不知为何两条线的情况多了起来
 			{
+				/*
+				forward_velocity = GetVelocity();
+				intToString(forward_velocity,velocity_Report);
+				drv_uart_tx_bytes((uint8_t*)velocity_Report,15);
+				drv_uart_tx_bytes((uint8_t*)' ',1);
+				*/
 				if (track1==1000) //车身矫正
 				{
 					Forward_Right();
@@ -779,10 +845,15 @@ void test_control(int command)
 		
 	/*--------------左转与右转----------------------------*/
 	}
-
+	char Track_str[10];
 	#if !DELAY_TURN
 	if (L_Turn_Flag)//左转标志，为了提高左右转的优先级另外单开
 	{
+		track2 = TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
+		intToString(track2,Track_str);
+		Track_str[5] = ' ';
+		Track_str[6] = '\n';
+		drv_uart_tx_bytes((uint8_t*)Track_str,7);
 		Left();
 		if (track2 == 10)
 		{
@@ -810,6 +881,11 @@ void test_control(int command)
 		
 	}else if (R_Turn_Flag)
 	{
+		track2 = TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
+		intToString(track2,Track_str);
+		Track_str[5] = ' ';
+		Track_str[6] = '\n';
+		drv_uart_tx_bytes((uint8_t*)Track_str,7);
 		Right();
 
 		if (track2 == 1000)

@@ -11,6 +11,7 @@
 #include "sonar.h"
 #include "drv_uart.h"
 #include  "oled.h"
+#include "encoder.h"
 
 extern bool reach_parking;  //是否到达停车点//停车标志位，停好车了才能发送下一个目的地
 extern int SpeedGear;//默认普通挡位
