@@ -408,7 +408,8 @@ float GetVelocity(int LRPM,int RRPM)
 	//浅测Lowspeed:0.34996m/s
 	float Forward_velocity;  
 	float circum_wheel = WHEEL_DIAMETER*PI;//车轮周长
-	Forward_velocity = (LRPM+RRPM)/2/60.0*circum_wheel; //RPM是车轮每分钟转过的角度，化为s，最终输出m/s
+	//Forward_velocity = (float)((LRPM+RRPM)/2.0/60.0*circum_wheel); //RPM是车轮每分钟转过的角度，化为s，最终输出m/s
+	Forward_velocity = (float)(LRPM/60.0*circum_wheel);
 	return Forward_velocity;
 	/*
 	if (Forward_velocity-(int)Forward_velocity>=0.5)
@@ -513,7 +514,7 @@ void parking(int command)
 		if (track2!=100)
 		{
 		    //如果前方传感器没有识别到线，那么应该倒转
-			if (track2==0)
+			if (track2==0&&!Parking_position)
 			{
 				Parking_Left();
 				while(track2!=100)//粗调，一直左转直到前面传感器碰到循迹线 !!最好不要用while
@@ -522,12 +523,13 @@ void parking(int command)
 				delay(100);
 				Lowspeed_Backward();
 				delay(200);
+				Parking_position=true;
 			}
 
 			/*
 			*！！！！细调的部分可能导致驱动板烧坏，要连续地调整，同时防止速度过快出现惯性
 			*/
-			while (track2<10)//细调
+			while (track2<100)//细调
 			{
 				Adjust_Left();
 				track2=TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
@@ -536,22 +538,7 @@ void parking(int command)
 				Adjust_Right();
 				track2=TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
 			}
-			if (track1!=0)//保证后面中间传感器不会又回到循迹线上
-			{
-				Lowspeed_Backward();
-				while (track1!=0)
-				{
-					track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
-					if(b_cnt++>=5000)//超过5000执行，这个函数每1ms调用一次,也就是说最多能转5s
-						break;
-				}
-					
-				delay(200);//给予一个20ms冗余，防止二次触发前进程序
-			}
-			if (track2>=10&&track2<=1000)//差不多的情况下认为停稳，关键在于一定要转过去才能这样认为
-			{
-				Parking_position=true;
-			}
+
 			
 			
 		}
@@ -644,7 +631,7 @@ void test_control(int command)
 			else if((track1 == 111)||(track1 == 1111))  // 左转
 			{	
 				
-				delay(25);
+				delay(30);
 				track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
 				if ((track1 == 111)||(track1 == 1111))//防止将T形岔口认成左右转
 				{
@@ -682,7 +669,7 @@ void test_control(int command)
 			else if((track1 == 11100)||(track1 == 11110)) //右转
 			{
 				
-				delay(25);
+				delay(30);
 				track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
 				if ((track1 == 11100)||(track1 == 11110))
 				{

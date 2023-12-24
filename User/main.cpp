@@ -1334,6 +1334,7 @@ char Set_B[10] = "Set B";    //将当前位置设置为停车点1并重置状态
 char Set_C[10] = "Set C";    //将当前位置设置为停车点2并重置状态
 char Report[10] = "Report";  //报告当前位置
 char Battery_Report[15] = "BatteryReport";//报告电池电量
+char Velocity_Report[15];
 char HighSpeed[10] = "HighSpeed";
 char LowSpeed[10] = "LowSpeed";
 char SlowSpeed[10] = "SlowSpeed";
@@ -1564,6 +1565,7 @@ int main(void)
 				test_control(current_command);
 			}
 			
+			//Lowspeed_Forward();
 			previous_command_time = millis();
 		}
 		if ((millis() - previous_battery_debug_time)>=10000)
@@ -1578,13 +1580,30 @@ int main(void)
 		
 
 		#if 1
-        if((millis() - previous_movebase_time) >= (1000 / MOVEBASE_RATE))
+        if(((millis() - previous_movebase_time) >= 2000) && (!REMOTE_CONTROL_FLAG))
         	{
 			/*
 			*由于没有码盘，这个模块是无效的
 			*/   
                getVelocities();
-               previous_movebase_time = millis();	  
+			   //current_rpm1 = encoder1.getRPM();
+			   //current_rpm2 = encoder2.getRPM();
+			   float ForwardVel = GetVelocity(current_rpm1,current_rpm2);
+			   if(raw_vel_msg.linear_x>ForwardVel) ForwardVel = (float)raw_vel_msg.linear_x;
+				sprintf(Velocity_Report,"%.3f",ForwardVel*PI/2);
+			   drv_uart_tx_bytes((uint8_t*)"Vel ",4);
+			   drv_uart_tx_bytes((uint8_t*)Velocity_Report,strlen(Velocity_Report));
+			   /*
+			   sprintf(Velocity_Report,"%d",(int)encoder1.getRPM());
+			   drv_uart_tx_bytes((uint8_t*)"Vel ",4);
+			   drv_uart_tx_bytes((uint8_t*)Velocity_Report,strlen(Velocity_Report));
+			   
+				sprintf(Velocity_Report,"%d",encoder2.getRPM());
+				drv_uart_tx_bytes((uint8_t*)"T",1);
+				drv_uart_tx_bytes((uint8_t*)Velocity_Report,strlen(Velocity_Report));
+				*/  
+               previous_movebase_time = millis();	
+			   
 		    }
 		#endif
 
@@ -1673,11 +1692,15 @@ int main(void)
 			else if ((millis() - previous_oled_time) >= (1000 / OLED_RATE)&& !REMOTE_CONTROL_FLAG)
 			{
 				char velRport[15];
-				float ForwardVel = GetVelocity(current_rpm1,current_rpm2);
+				current_rpm1 = encoder1.getRPM();
+				current_rpm2 = encoder2.getRPM();
+				
 				OLED_ShowString(0,0,"Ob:");
-				OLED_ShowNumber(16,0,(int)distance,3,16);
+				//OLED_ShowNumber(16,0,(int)distance,3,16);
 				OLED_ShowString(0,16,"Ba:");
-				OLED_ShowNumber(16,16,bat.get_battery_precent(),3,16);
+				//OLED_ShowNumber(16,16,bat.get_battery_precent(),2,16);
+				OLED_ShowNumber(16,0,current_rpm1,2,16);
+				OLED_ShowNumber(16,16,current_rpm2,2,16);
 
 
 				
