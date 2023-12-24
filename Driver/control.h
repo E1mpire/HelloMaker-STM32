@@ -21,5 +21,6 @@ void test_control(int command);
 void parking(int command);
 void Set_Node(int command);
 void ReportNode(void);
-int GetVelocity(void);
+float GetVelocity(int LRPM,int RRPM);
+void intToString(int num, char *str);
 #endif

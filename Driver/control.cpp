@@ -396,17 +396,21 @@ void ShiftSpeedMode(void)
 }
 
 /*编码器变量，用于读取转速*/
-Encoder LFWheel(ENCODER1, 0xffff, 0, LCOUNTS_PER_REV);
-int Left_RPM;//左轮转速
+extern Encoder encoder1;
+extern Encoder encoder2;
+//Encoder encoder1(ENCODER1, 0xffff, 0, LCOUNTS_PER_REV);
+float Left_RPM;//左轮转速
 int forward_velocity;
 char velocity_Report[15];
 /*输入车轮转速，得到速度*/
-int GetVelocity(void)
+float GetVelocity(int LRPM,int RRPM)
 {
-	Left_RPM = LFWheel.getRPM();
+	//浅测Lowspeed:0.34996m/s
 	float Forward_velocity;  
 	float circum_wheel = WHEEL_DIAMETER*PI;//车轮周长
-	Forward_velocity = Left_RPM/60*circum_wheel; //RPM是车轮每分钟转过的角度，化为s，最终输出m/s
+	Forward_velocity = (LRPM+RRPM)/2/60.0*circum_wheel; //RPM是车轮每分钟转过的角度，化为s，最终输出m/s
+	return Forward_velocity;
+	/*
 	if (Forward_velocity-(int)Forward_velocity>=0.5)
 	{
 		return (int)Forward_velocity+1;
@@ -414,7 +418,7 @@ int GetVelocity(void)
 	{
 		return (int)Forward_velocity;
 	}
-	
+	*/
 }
 /*把int转化为字符串方便输出*/
 void intToString(int num, char *str) {
@@ -667,7 +671,7 @@ void test_control(int command)
 				else//既检测到分岔口，又不允许转向，说明程序要求往前走
 				{
 					Lowspeed_Forward();
-					delay(100);//要让它走过那条循迹线，不再判断了
+					delay(200);//要让它走过那条循迹线，不再判断了
 					Update_node(command);//更新节点信息
 				}
 				}
@@ -704,7 +708,7 @@ void test_control(int command)
 				else//既检测到分岔口，又不允许转向，说明程序要求往前走
 				{
 					Lowspeed_Forward();
-					delay(100);//要让它走过那条循迹线，不再判断了
+					delay(200);//要让它走过那条循迹线，不再判断了
 					Update_node(command);//更新节点信息
 				}
 				
@@ -716,9 +720,6 @@ void test_control(int command)
 			
 			else if((track2 == 100)||(track2 == 110)||(track2 == 1100)) //直行 不知为何两条线的情况多了起来
 			{
-				intToString(GetVelocity(),velocity_Report);
-				drv_uart_tx_bytes((uint8_t*)"velocity",15);
-				drv_uart_tx_bytes((uint8_t*)' ',1);
 				if (track1==1000) //车身矫正
 				{
 					Forward_Right();

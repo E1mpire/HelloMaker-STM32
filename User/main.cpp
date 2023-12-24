@@ -118,6 +118,8 @@ FUTABA_SBUS sBus;
 PID motor1_pid(-240, 240, K_P, K_I, K_D);
 PID motor2_pid(-240, 240, K_P, K_I, K_D);
 
+extern Encoder encoder1;
+extern Encoder encoder2;
 Encoder encoder1(ENCODER1, 0xffff, 0, LCOUNTS_PER_REV);
 Encoder encoder2(ENCODER2, 0xffff, 0, RCOUNTS_PER_REV);
 Battery bat(25, 10.6, 12.6);
@@ -326,7 +328,7 @@ void getVelocities()
   current_rpm2 = encoder2.getRPM();
   #endif
   Kinematics::velocities current_vel;
-  current_vel = kinematics.getVelocities(current_rpm1, current_rpm1);//目前只使用了一个码盘，所以两个都是1
+  current_vel = kinematics.getVelocities(current_rpm1, current_rpm2);//目前只使用了一个码盘，所以两个都是1
   Speed_x = current_vel.linear_x;
   Speed_y = current_vel.linear_y;
   raw_vel_msg.linear_x = current_vel.linear_x;
@@ -1550,6 +1552,7 @@ int main(void)
 			/*
 			/程序控制模块，每1ms执行一次
 			*/
+			
 			UltrasonicWave_StartMeasure();
 			int Distance=(int)distance;
 			
@@ -1669,11 +1672,14 @@ int main(void)
 			}
 			else if ((millis() - previous_oled_time) >= (1000 / OLED_RATE)&& !REMOTE_CONTROL_FLAG)
 			{
+				char velRport[15];
+				float ForwardVel = GetVelocity(current_rpm1,current_rpm2);
 				OLED_ShowString(0,0,"Ob:");
 				OLED_ShowNumber(16,0,(int)distance,3,16);
 				OLED_ShowString(0,16,"Ba:");
-				OLED_ShowNumber(16,16,GetVelocity(),3,16);
-				
+				OLED_ShowNumber(16,16,bat.get_battery_precent(),3,16);
+
+
 				
 				/*
 				if (TRACK1) OLED_ShowNumber(0,48,1,1,16); else if(!TRACK1) OLED_ShowNumber(0,48,0,1,16);
