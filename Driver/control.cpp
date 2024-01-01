@@ -23,7 +23,7 @@ bool R_Turn_Flag = 0;
 bool through_node = false;//是否走过分岔口
 int lr_cnt = 0;  //防止过度左转或右转，一个cnt1ms时间
 int b_cnt = 0;//后退计时
-
+int Distance=0;// 超声波雷达距离
 int Stop_cnt = 0;//在非停车函数下感应不到循迹线，超过100ms停车
 #endif
 int track1 = 0; //中间传感器的值
@@ -446,7 +446,13 @@ void parking(int command)
 	OLED_ShowString(0,32,"Park:");
 	OLED_ShowNumber(0,48,current_node->num,1,16);
 	OLED_ShowNumber(16,48,previous_node->num,1,16);
-
+	UltrasonicWave_StartMeasure();
+	Distance = (int)distance;
+	if (Distance>12)
+	{
+		//避障雷达没有检测到障碍物才能执行
+	
+	
 	if (track1!=0&&!Parking_position)
 	{
 		if (track2==100)
@@ -569,10 +575,20 @@ void parking(int command)
 					
 				delay(200);//给予一个20ms冗余，防止二次触发前进程序
 		}
+	}else
+	{
+		Stop();
+			if (cnt_Obstacle>=1000) //程序每1ms执行一次，大约1s间隔报告障碍
+				{
+					drv_uart_tx_bytes((uint8_t*)"There are obstacles ahead",25);  //报告前方有障碍物
+					cnt_Obstacle = 0;//刷新计数
+				}
+				cnt_Obstacle++;
+	}
 	
 }
 
-int Distance=0;
+
 bool Edge_Statue = false;
 void test_control(int command)
 {
@@ -597,7 +613,7 @@ void test_control(int command)
 	if(!L_Turn_Flag&&!R_Turn_Flag) //没有在进行转向
 	{
 		#endif
-		if (Distance>=-1) //如果12cm内没有障碍物
+		if (Distance>=12) //如果12cm内没有障碍物
 		{
 			cnt_Obstacle = 1000;//重置障碍报告计数
 				//T字形分岔口或是到达停车位
@@ -776,14 +792,14 @@ void test_control(int command)
 			else if (track2 == 10000)//车身极度左偏
 			{
 					Right();
-					delay(LR_bias_time);
-					Lowspeed_Forward();
+					//delay(LR_bias_time);
+					//Lowspeed_Forward();
 			}
 			else if (track2 == 1)//车头极度右偏
 			{
 					Left();
-					delay(LR_bias_time);
-					Lowspeed_Forward();
+					//delay(LR_bias_time);
+					//Lowspeed_Forward();
 
 			}
 			

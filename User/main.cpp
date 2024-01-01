@@ -1696,11 +1696,11 @@ int main(void)
 				current_rpm2 = encoder2.getRPM();
 				
 				OLED_ShowString(0,0,"Ob:");
-				//OLED_ShowNumber(16,0,(int)distance,3,16);
+				OLED_ShowNumber(16,0,(int)distance,3,16);
 				OLED_ShowString(0,16,"Ba:");
-				//OLED_ShowNumber(16,16,bat.get_battery_precent(),2,16);
-				OLED_ShowNumber(16,0,current_rpm1,2,16);
-				OLED_ShowNumber(16,16,current_rpm2,2,16);
+				OLED_ShowNumber(16,16,bat.get_battery_precent(),2,16);
+				//OLED_ShowNumber(16,0,current_rpm1,2,16);
+				//OLED_ShowNumber(16,16,current_rpm2,2,16);
 
 
 				
