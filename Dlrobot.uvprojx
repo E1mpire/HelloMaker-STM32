@@ -620,6 +620,11 @@
               <FileType>8</FileType>
               <FilePath>.\Driver\control.cpp</FilePath>
             </File>
+            <File>
+              <FileName>movement.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\Driver\movement.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
