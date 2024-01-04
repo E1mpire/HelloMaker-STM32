@@ -1334,7 +1334,7 @@ char Set_B[10] = "Set B";    //将当前位置设置为停车点1并重置状态
 char Set_C[10] = "Set C";    //将当前位置设置为停车点2并重置状态
 char Report[10] = "Report";  //报告当前位置
 char Battery_Report[15] = "BatteryReport";//报告电池电量
-char Velocity_Report[15];
+char Velocity_Number[7];
 char HighSpeed[10] = "HighSpeed";
 char LowSpeed[10] = "LowSpeed";
 char SlowSpeed[10] = "SlowSpeed";
@@ -1590,8 +1590,10 @@ int main(void)
 			   //current_rpm2 = encoder2.getRPM();
 			   float ForwardVel = GetVelocity(current_rpm1,current_rpm2);
 			   if(raw_vel_msg.linear_x>ForwardVel) ForwardVel = (float)raw_vel_msg.linear_x;
-				sprintf(Velocity_Report,"%.3f",ForwardVel*PI/2);
-			   drv_uart_tx_bytes((uint8_t*)"Vel ",4);
+				sprintf(Velocity_Number,"%.3f",ForwardVel*PI/2);
+				char Velocity_Report[15] = "Vel ";
+			   strcat(Velocity_Report,Velocity_Number);
+			   //drv_uart_tx_bytes((uint8_t*)"Vel ",4);
 			   drv_uart_tx_bytes((uint8_t*)Velocity_Report,strlen(Velocity_Report));
 			   /*
 			   sprintf(Velocity_Report,"%d",(int)encoder1.getRPM());
