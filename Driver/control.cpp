@@ -10,10 +10,12 @@ int bias_time=50; //偏离轨道时调整的时间
 int LR_bias_time = 20;//使用左右转弯时调整的时间
 
 bool ShiftSpeedFlag = false; //进入变速模式标志
-extern int SpeedGear;
+extern int SpeedGear;//速度挡位
 int SpeedGear = 1;
 
 int cnt_Obstacle = 1000;//报告障碍间隔
+
+bool T_Flag = false; //是否检测到T型弯
 
 #if DELAY_TURN
 int bend_time =850; //转弯时间
@@ -128,6 +130,7 @@ void Set_Node(int command)
 	Parking_position = true;
 	L_turn_allow = false; 
 	R_turn_allow = false;
+	current_command = command;
 	switch (command)
 	{
 	case 1:
@@ -535,11 +538,11 @@ void parking(int command)
 			/*
 			*！！！！细调的部分可能导致驱动板烧坏，要连续地调整，同时防止速度过快出现惯性
 			*/
-			while (track2<100)//细调
+			while (TRACK6||TRACK7)//细调
 			{
 				Adjust_Left();
 				track2=TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
-			}while(track2>100)
+			}while(TRACK9||TRACK10)
 			{
 				Adjust_Right();
 				track2=TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
@@ -609,6 +612,7 @@ void test_control(int command)
 	track2 = TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
 	#endif
 	if(track1!=0||track2!=0) Stop_cnt=0;//重新找到循迹线，停车计数停止
+	if(track2 == 11111) T_Flag=true;//如果前方传感器检测到T型弯
 	#if !DELAY_TURN
 	if(!L_Turn_Flag&&!R_Turn_Flag) //没有在进行转向
 	{
@@ -642,13 +646,13 @@ void test_control(int command)
 					Stop(); //出现错误了，直接停车
 					drv_uart_tx_bytes((uint8_t*)"Error",5);
 				}
-				
+				T_Flag = false;
 			}
-			else if((track1 == 111)||(track1 == 1111))  // 左转
+			else if(((track1 == 111)||(track1 == 1111))&&!T_Flag)  // 左转
 			{	
 				
-				delay(30);
-				track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
+				//delay(30);
+				//track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
 				if ((track1 == 111)||(track1 == 1111))//防止将T形岔口认成左右转
 				{
 					drv_uart_tx_bytes((uint8_t*)"Left",5);
@@ -682,11 +686,11 @@ void test_control(int command)
 				
 				
 			}
-			else if((track1 == 11100)||(track1 == 11110)) //右转
+			else if(((track1 == 11100)||(track1 == 11110))&&!T_Flag) //右转
 			{
 				
-				delay(30);
-				track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
+				//delay(30);
+				//track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
 				if ((track1 == 11100)||(track1 == 11110))
 				{
 					drv_uart_tx_bytes((uint8_t*)"Right",5);
@@ -876,7 +880,7 @@ void test_control(int command)
 		Left();
 		//if(track2==1) Edge_Statue = true; //防止不经旋转就退出转向模式
 		//if (track2 == 10&&Edge_Statue)
-		if (track2 == 10)
+		if (track2 == 10||track2==110)
 		{
 			//Edge_Statue = false;
 			L_Turn_Flag=0; 
@@ -908,7 +912,7 @@ void test_control(int command)
 		Right();
 		//if(track2==10000) Edge_Statue = true;
 		//if (track2 == 1000&&Edge_Statue)
-		if (track2 == 1000)
+		if (track2 == 1000||track2==1100)
 		{
 			//Edge_Statue = false;
 			R_Turn_Flag=0;

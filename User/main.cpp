@@ -1566,6 +1566,7 @@ int main(void)
 			}
 			
 			//Lowspeed_Forward();
+			//Lowspeed_Forward();	
 			previous_command_time = millis();
 		}
 		if ((millis() - previous_battery_debug_time)>=10000)
@@ -1590,7 +1591,8 @@ int main(void)
 			   //current_rpm2 = encoder2.getRPM();
 			   float ForwardVel = GetVelocity(current_rpm1,current_rpm2);
 			   if(raw_vel_msg.linear_x>ForwardVel) ForwardVel = (float)raw_vel_msg.linear_x;
-				sprintf(Velocity_Number,"%.3f",ForwardVel*PI/2);
+				//sprintf(Velocity_Number,"%.3f",ForwardVel*PI/2);
+				sprintf(Velocity_Number,"%.3f",ForwardVel);
 				char Velocity_Report[15] = "Vel ";
 			   strcat(Velocity_Report,Velocity_Number);
 			   //drv_uart_tx_bytes((uint8_t*)"Vel ",4);
