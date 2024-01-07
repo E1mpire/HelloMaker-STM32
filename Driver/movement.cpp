@@ -10,9 +10,9 @@ float FLspeed_Scale=0.98;
 float BHspeed_Scale=2;
 float BLspeed_Scale=2;
 // 高速和低速的基准pwm值
-int highspeed = 120;
-int lowspeed = 90;  //正常设置为100
-int slowspeed = 70;
+int highspeed = 125;
+int lowspeed = 95;  //正常设置为100
+int slowspeed = 75;
 
 
 int pwm_y1;

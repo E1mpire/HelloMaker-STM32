@@ -78,37 +78,37 @@ void Init_Route(void)
 	Parking->position = "Parking";
 	Parking->num = 1;
 	Parking->toA = 3;
-	Parking->toB = 2;
+	Parking->toB = 0;
 	Parking->toC = 1;
 	Parking->toA_next = NULL;
 	Parking->toB_next = StopB; //到达后的next暂定
-	Parking->toC_next = Branch1;
+	Parking->toC_next = StopC;
 
 	StopB->position = "StopB";
 	StopB->num = 2;
-	StopB->toA = 1;
+	StopB->toA = 2;
 	StopB->toB = 3;
 	StopB->toC = 2;
 	StopB->toA_next = Parking;
 	StopB->toB_next = NULL;
-	StopB->toC_next = Branch2;
+	StopB->toC_next = Branch1;
 
 	StopC->position = "StopC";
 	StopC->num = 3;
 	StopC->toA = 2;
 	StopC->toB = 2;
 	StopC->toC = 3;
-	StopC->toA_next = Branch2;
-	StopC->toB_next = Branch2;
+	StopC->toA_next = Parking;
+	StopC->toB_next = Branch1;
 	StopC->toC_next = NULL;
 
 	Branch1->position = "Branch1";
 	Branch1->num = 4;
 	Branch1->toA = 1;//这里从Branch2来
-	Branch1->toB = 1;
+	Branch1->toB = 2;
 	Branch1->toC = 2;//这里从Parking来
-	Branch1->toA_next = Parking;
-	Branch1->toB_next = Parking;
+	Branch1->toA_next = NULL;
+	Branch1->toB_next = StopB;
 	Branch1->toC_next = StopC;
 
 	Branch2->position = "Branch2";
@@ -274,14 +274,14 @@ void Update_node(int command)
 			}
 			else if (current_node->toA_next==NULL)//已经到达停车点位置的前方
 				{
-					if (previous_node == Branch1)//如果是从Branch1来的
+					if (previous_node == StopB)//如果是从停车点1来的
 					{
 						R_turn_allow = true;     //右转进入停车位
 						L_turn_allow = false;
-					}else if (previous_node == StopB)
+					}else if (previous_node == StopC)//如果是从停车点2
 					{
-						R_turn_allow = false;     //直行进入停车位
-						L_turn_allow = false;
+						R_turn_allow = false;     //左转进入停车位
+						L_turn_allow = true;
 					}
 					previous_node = previous_node->toA_next;//更新previous节点
 					
@@ -303,7 +303,7 @@ void Update_node(int command)
 					{
 						R_turn_allow = true;     //右转进入停车位
 						L_turn_allow = false;
-					}else if (previous_node == Branch2)
+					}else if (previous_node == Branch1)
 					{
 						R_turn_allow = false;     //直行进入停车位
 						L_turn_allow = false;
@@ -326,8 +326,8 @@ void Update_node(int command)
 				{
 					if (previous_node == Branch1)//如果是从Branch1来的
 					{
-						R_turn_allow = false;     //右转进入停车位
-						L_turn_allow = true;
+						R_turn_allow = false;     //直行进入停车位
+						L_turn_allow = false;
 					}else if (previous_node == Branch2)
 					{
 						R_turn_allow = false;     //直行进入停车位
