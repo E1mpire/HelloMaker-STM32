@@ -78,8 +78,8 @@ void Init_Route(void)
 	Parking->position = "Parking";
 	Parking->num = 1;
 	Parking->toA = 3;
-	Parking->toB = 0;
-	Parking->toC = 1;
+	Parking->toB = 1;
+	Parking->toC = 0;
 	Parking->toA_next = NULL;
 	Parking->toB_next = StopB; //到达后的next暂定
 	Parking->toC_next = StopC;
@@ -301,7 +301,7 @@ void Update_node(int command)
 				{
 					if (previous_node == Parking)//如果是从Parking来的
 					{
-						R_turn_allow = true;     //右转进入停车位
+						R_turn_allow = false;     //直行进入停车位
 						L_turn_allow = false;
 					}else if (previous_node == Branch1)
 					{
@@ -328,7 +328,7 @@ void Update_node(int command)
 					{
 						R_turn_allow = false;     //直行进入停车位
 						L_turn_allow = false;
-					}else if (previous_node == Branch2)
+					}else if (previous_node == Parking)
 					{
 						R_turn_allow = false;     //直行进入停车位
 						L_turn_allow = false;
@@ -793,13 +793,13 @@ void test_control(int command)
 					//Lowspeed_Forward();
 				}
 			}
-			else if (track2 == 10000)//车身极度左偏
+			else if (track2 == 10000||track2==11000)//车身极度左偏
 			{
 					Right();
 					//delay(LR_bias_time);
 					//Lowspeed_Forward();
 			}
-			else if (track2 == 1)//车头极度右偏
+			else if (track2 == 1||track2==11)//车头极度右偏
 			{
 					Left();
 					//delay(LR_bias_time);
@@ -888,8 +888,8 @@ void test_control(int command)
 
 			//Lowspeed_Forward();//为了让中间传感器走过循迹线，不误触发转向
 			//delay(100);
-			Right_Forward();
-			delay(400);    
+			Lowspeed_Forward();
+			delay(300);    
 			if(through_node)//过弯，且是走过有分岔口的弯，更新节点信息
 			{
 				Update_node(command);
@@ -919,8 +919,8 @@ void test_control(int command)
 			lr_cnt = 0;
 			//Lowspeed_Forward();
 			//delay(100);
-			Left_Forward();
-			delay(400);
+			Lowspeed_Forward();
+			delay(300);
 			if(through_node)//过弯，且是走过有分岔口的弯，更新节点信息
 			{
 				Update_node(command);
