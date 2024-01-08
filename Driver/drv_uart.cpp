@@ -21,6 +21,7 @@
 #include <string.h>
 
 char HexHeader[10] = "414141";
+char CarNumber[5] = "C2"; //车辆编号，加在帧头之后，命令之前
 char Command_Header[50];
 //char TXBuffer[10];
 
@@ -71,26 +72,7 @@ void drv_uart_init( uint32_t UartBaudRate )
 /*
 适用于uint8_t的strcat
 */
-void uint8_t_strcat(uint8_t *destination, const uint8_t *source) {
-    while (*destination) {
-        destination++;
-    }
-    while (*source) {
-        *destination = *source;
-        destination++;
-        source++;
-    }
-    *destination = '\0'; // 添加字符串结束符
-}
 
-void convertCharToUint8(const char *charString, uint8_t *uint8String) {
-    size_t length = strlen(charString);
-
-    for (size_t i = 0; i < length; ++i) {
-        uint8String[i] = (uint8_t)charString[i];
-    }
-    uint8String[length] = '\0'; // 添加字符串结束符
-}
 
 void hexStringToChar(const char *hexString, char *charString) {
     size_t length = strlen(hexString);
@@ -118,7 +100,8 @@ void drv_uart_tx_bytes( uint8_t* TxBuffer, uint8_t Length )
 	
 	//sprintf(Command_Header,"%04X%02X",LoRa_Address,Frequency_Channel);//帧头，包含发送地址和频率信道
 	hexStringToChar(HexHeader,Command_Header); //将16进制的帧头转换为对应的字符
-	Length = Length + strlen(Command_Header);  //长度相应增加
+	Length = Length + strlen(Command_Header)+2;  //长度相应增加
+	strcat(Command_Header,CarNumber);
 	strcat(Command_Header,(char*)TxBuffer);
 	TxBuffer = (uint8_t*)Command_Header;
 	//uint8_t_strcat(U8Header,TxBuffer);  //把帧头放到信息前面
