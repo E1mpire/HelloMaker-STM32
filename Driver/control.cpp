@@ -531,7 +531,7 @@ void parking(int command)
 				Stop();
 				delay(100);
 				Lowspeed_Backward();
-				delay(200);
+				delay(100);
 				Parking_position=true;
 			}
 
@@ -662,16 +662,16 @@ void test_control(int command)
 					Stop();
 					delay(100);
 					L_Turn_Flag = 1;
-					//Left();
-					//delay(1000);//先转一下，防止过早结束旋转
+					Left();
+					delay(1000);//先转一下，防止过早结束旋转
 				}
 				else if (L_turn_allow)//如果检测到分岔口，但是有转向许可
 				{
 					Stop();
 					delay(100);
 					L_Turn_Flag = 1;
-					//Left();
-					//delay(1000);//先转一下，防止过早结束旋转
+					Left();
+					delay(500);//先转一下，防止过早结束旋转
 					through_node = true; //走过了分岔口，在过弯后需要更新节点信息
 				}
 				
@@ -699,16 +699,16 @@ void test_control(int command)
 					Stop();
 					delay(100);
 					R_Turn_Flag = 1;
-					//Right();
-					//delay(1000);//先转一下，防止过早结束旋转
+					Right();
+					delay(500);//先转一下，防止过早结束旋转
 				}
 				else if (R_turn_allow)//如果检测到分岔口，但是有转向许可
 				{
 					Stop();
 					delay(100);
 					R_Turn_Flag = 1;
-					//Right();
-					//delay(1000);//先转一下，防止过早结束旋转
+					Right();
+					delay(500);//先转一下，防止过早结束旋转
 					through_node = true; //走过了分岔口，在过弯后需要更新节点信息
 				}
 				
