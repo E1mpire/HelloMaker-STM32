@@ -590,7 +590,34 @@ void parking(int command)
 	}
 	
 }
-
+//T型弯处理
+void TTurn(void)
+{
+	drv_uart_tx_bytes((uint8_t*)"T",1);
+	if(L_turn_allow)drv_uart_tx_bytes((uint8_t*)"Left_allow ",11);
+	else drv_uart_tx_bytes((uint8_t*)"Left_false ",11);
+	if(R_turn_allow)drv_uart_tx_bytes((uint8_t*)"Right_allow ",12);
+	else drv_uart_tx_bytes((uint8_t*)"Right_false ",12);
+	if (L_turn_allow)
+	{
+		Stop();
+		delay(100);
+		L_Turn_Flag = 1;
+		through_node = true; //走过了分岔口，在过弯后需要更新节点信息
+	}else if (R_turn_allow)
+	{
+		Stop();
+		delay(100);
+		R_Turn_Flag = 1;
+		through_node = true; //走过了分岔口，在过弯后需要更新节点信息
+	}		
+	else
+	{
+		Stop(); //出现错误了，直接停车
+		drv_uart_tx_bytes((uint8_t*)"Error",5);
+	}
+	T_Flag = false;
+}
 
 bool Edge_Statue = false;
 void test_control(int command)
@@ -623,37 +650,14 @@ void test_control(int command)
 				//T字形分岔口或是到达停车位
 			if (track1 == 11111)
 			{
-				drv_uart_tx_bytes((uint8_t*)"T",1);
-				if(L_turn_allow)drv_uart_tx_bytes((uint8_t*)"Left_allow ",11);
-				else drv_uart_tx_bytes((uint8_t*)"Left_false ",11);
-				if(R_turn_allow)drv_uart_tx_bytes((uint8_t*)"Right_allow ",12);
-				else drv_uart_tx_bytes((uint8_t*)"Right_false ",12);
-				if (L_turn_allow)
-				{
-					Stop();
-					delay(100);
-					L_Turn_Flag = 1;
-					through_node = true; //走过了分岔口，在过弯后需要更新节点信息
-				}else if (R_turn_allow)
-				{
-					Stop();
-					delay(100);
-					R_Turn_Flag = 1;
-					through_node = true; //走过了分岔口，在过弯后需要更新节点信息
-				}		
-				else
-				{
-					Stop(); //出现错误了，直接停车
-					drv_uart_tx_bytes((uint8_t*)"Error",5);
-				}
-				T_Flag = false;
+				TTurn();
 			}
-			else if(((track1 == 111)||(track1 == 1111))&&!T_Flag)  // 左转
+			else if(((track1 == 111)||(track1 == 1111)))  // 左转
 			{	
 				
 				//delay(30);
 				//track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
-				if ((track1 == 111)||(track1 == 1111))//防止将T形岔口认成左右转
+				if (!T_Flag)//不是T弯
 				{
 					drv_uart_tx_bytes((uint8_t*)"Left",5);
 					//如果前方传感器没有感应到黑线，说明没有分岔口；若有分岔口程序允许左转的时候也可以转
@@ -681,6 +685,10 @@ void test_control(int command)
 					delay(200);//要让它走过那条循迹线，不再判断了
 					Update_node(command);//更新节点信息
 				}
+				}else
+				{
+					//是T弯，认错了
+					TTurn();
 				}
 				
 				
@@ -691,35 +699,39 @@ void test_control(int command)
 				
 				//delay(30);
 				//track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
-				if ((track1 == 11100)||(track1 == 11110))
+				if (!T_Flag)
 				{
 					drv_uart_tx_bytes((uint8_t*)"Right",5);
 					if (track2 == 0)
-				{
-					Stop();
-					delay(100);
-					R_Turn_Flag = 1;
-					Right();
-					delay(500);//先转一下，防止过早结束旋转
-				}
+					{
+						Stop();
+						delay(100);
+						R_Turn_Flag = 1;
+						//Right();
+						//delay(1000);//先转一下，防止过早结束旋转
+					}
 				else if (R_turn_allow)//如果检测到分岔口，但是有转向许可
-				{
-					Stop();
-					delay(100);
-					R_Turn_Flag = 1;
-					Right();
-					delay(500);//先转一下，防止过早结束旋转
-					through_node = true; //走过了分岔口，在过弯后需要更新节点信息
-				}
+					{
+						Stop();
+						delay(100);
+						R_Turn_Flag = 1;
+						//Right();
+						//delay(1000);//先转一下，防止过早结束旋转
+						through_node = true; //走过了分岔口，在过弯后需要更新节点信息
+					}
 				
 				else//既检测到分岔口，又不允许转向，说明程序要求往前走
-				{
-					Lowspeed_Forward();
-					delay(200);//要让它走过那条循迹线，不再判断了
-					Update_node(command);//更新节点信息
-				}
+					{
+						Lowspeed_Forward();
+						delay(200);//要让它走过那条循迹线，不再判断了
+						Update_node(command);//更新节点信息
+					}
 				
 
+				}else
+				{
+					//是T弯，认错了
+					TTurn();
 				}
 				
 				
@@ -938,5 +950,10 @@ void test_control(int command)
 	}
 
 	#endif
-	if(track2 == 11111&&track1 == 11111) Stop();//车被提起来了，停车
+	if(track2 == 11111&&track1 == 11111) 
+	{
+		Stop();//车被提起来了，停车
+		T_Flag = false;//这个时候会触发T弯，要关掉
+	}
+	
 }
