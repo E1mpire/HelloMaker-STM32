@@ -1549,7 +1549,7 @@ int main(void)
 		    }
 
 		#if (CONNECT_DETEC)
-		if ((millis() - previous_command_time) >= 10 && !REMOTE_CONTROL_FLAG){  
+		if ((millis() - previous_command_time) >= 20 && !REMOTE_CONTROL_FLAG){  
 			/*
 			/程序控制模块，每1ms执行一次
 			*/
