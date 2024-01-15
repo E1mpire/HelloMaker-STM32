@@ -143,8 +143,14 @@ void Stop(void)
 
 void Parking_Left(void)
 {
-	pwm_y1 = -lowspeed+10;
-	pwm_y2 = lowspeed-10;
+	pwm_y1 = -highspeed-20;
+	pwm_y2 = highspeed+2
+	
+	
+	
+	
+	
+	0;
 	motor1.spin(pwm_y1);   //左轮
 	motor2.spin(-pwm_y2);   //右轮，电机接受的值与左轮相反
 	delay_us(100);

@@ -370,30 +370,29 @@ void ReportNode(void)
 }
 
 /*
-* 高速模式的启用,1为高速，0为普通
+* 。测速路段检测，进入测速路段开启变速模式,2为高速，1为普通，0为低速
 */
+int Tempspeed;
 void ShiftSpeedMode(void)
 {
-	if (current_node->num==3&&previous_node->num==4) 
+	if (previous_node->num==1&&(current_node->num==2||current_node->num==3)) 
 	{
 		if(!ShiftSpeedFlag) 
 		{
 			drv_uart_tx_bytes((uint8_t*)"ShiftSpeed",10); //报告	
 			ShiftSpeedFlag = true; //进入变速路段，开启变速
 		}
-
-		
-	}
-	
-	if (ShiftSpeedFlag)//在进入了变速模式的情况下
-	{
-		if (current_node->num==3&&previous_node->num==3&&((track2 == 11100)||(track2 == 11110)))
+		if (track2 == 11111 || track2 == 11110 || track2 == 1111) //即将进入弯道，变回普通速度
 		{
-			ShiftSpeedFlag = false; //当准备进入往停车点2的第一个弯时停止变速
-			drv_uart_tx_bytes((uint8_t*)"QuitShift",9);
-		}	
-			
+			Tempspeed = SpeedGear;
+			SpeedGear = 1;
+		}
 		
+	}else if (ShiftSpeedFlag)//在进入了变速模式的情况下
+	{
+		ShiftSpeedFlag = false; //当准备进入往停车点2的第一个弯时停止变速
+		SpeedGear = Tempspeed;//回复速度挡位
+		drv_uart_tx_bytes((uint8_t*)"QuitShift",9);
 	}
 	
 }
@@ -565,7 +564,11 @@ void parking(int command)
 			
 		}	
 	}
-	if(track2 == 11111&&track1 == 11111) Stop();//车被提起来了，停车
+	if(track2 == 11111&&track1 == 11111)
+	{
+		Stop();//车被提起来了，停车
+		T_Flag = false;//会触发T弯，取消之
+	} 
 	else if (Parking_position&&track1!=0)//停稳后，车的中间传感器又意外回到
 		{
 			Lowspeed_Backward();
@@ -666,16 +669,16 @@ void test_control(int command)
 					Stop();
 					delay(100);
 					L_Turn_Flag = 1;
-					//Left();
-					//delay(1000);//先转一下，防止过早结束旋转
+					Left();
+					delay(1000);//先转一下，防止过早结束旋转
 				}
 				else if (L_turn_allow)//如果检测到分岔口，但是有转向许可
 				{
 					Stop();
 					delay(100);
 					L_Turn_Flag = 1;
-					//Left();
-					//delay(1000);//先转一下，防止过早结束旋转
+					Left();
+					delay(1000);//先转一下，防止过早结束旋转
 					through_node = true; //走过了分岔口，在过弯后需要更新节点信息
 				}
 				
@@ -707,16 +710,16 @@ void test_control(int command)
 						Stop();
 						delay(100);
 						R_Turn_Flag = 1;
-						//Right();
-						//delay(1000);//先转一下，防止过早结束旋转
+						Right();
+						delay(1000);//先转一下，防止过早结束旋转
 					}
 				else if (R_turn_allow)//如果检测到分岔口，但是有转向许可
 					{
 						Stop();
 						delay(100);
 						R_Turn_Flag = 1;
-						//Right();
-						//delay(1000);//先转一下，防止过早结束旋转
+						Right();
+						delay(1000);//先转一下，防止过早结束旋转
 						through_node = true; //走过了分岔口，在过弯后需要更新节点信息
 					}
 				
