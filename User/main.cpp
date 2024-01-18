@@ -1581,7 +1581,7 @@ int main(void)
 		
 
 		#if 1
-        if(((millis() - previous_movebase_time) >= 2000) && (!REMOTE_CONTROL_FLAG))
+        if(((millis() - previous_movebase_time) >= 3000) && (!REMOTE_CONTROL_FLAG))
         	{
 			/*
 			*由于没有码盘，这个模块是无效的

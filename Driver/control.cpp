@@ -43,9 +43,9 @@ extern int current_command;
 bool L_turn_allow = false; //True允许左转  false:FC C0 true:01 01
 bool R_turn_allow = false;
 //停车入库设置
-bool reach_parking = true;
+bool reach_parking = true;    //是否到达停车点
 bool Parking_position = true; //是否倒车
-bool Reverse_parking = false;//为True则需要倒车入库
+bool Parking_Figure = false;  //车身是否校正
 //车身方向
 bool Clockside = false;//代表此时车子时顺时针方向巡航
 /*
@@ -128,6 +128,7 @@ void Set_Node(int command)
 	//重新初始化相关变量
 	reach_parking = true;
 	Parking_position = true;
+	Parking_Figure = false; //默认没有校正车身
 	L_turn_allow = false; 
 	R_turn_allow = false;
 	current_command = command;
@@ -521,7 +522,7 @@ void parking(int command)
 		static int cnt_back;
 		if (track2!=100)
 		{
-		    //如果前方传感器没有识别到线，那么应该倒转
+		    //如果前方传感器没有识别到线且没有倒转，那么应该倒转
 			if (track2==0&&!Parking_position)
 			{
 				Parking_Left();
@@ -531,45 +532,147 @@ void parking(int command)
 				delay(100);
 				Lowspeed_Backward();
 				delay(200);
-				Parking_position=true;
+				Parking_position=true;//车身已经倒转
 			}
-
-			/*
-			*！！！！细调的部分可能导致驱动板烧坏，要连续地调整，同时防止速度过快出现惯性
-			*/
-			while (TRACK6||TRACK7)//细调
+			else if (Parking_Figure&&Parking_position&&(track2!=100||track1!=0)) //车身校正与倒车均已完成,但是不是停车姿态
 			{
-				Adjust_Left();
-				track2=TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
-			}while(TRACK9||TRACK10)
-			{
-				Adjust_Right();
-				track2=TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
+				if (track1!=0)
+				{
+					Lowspeed_Backward();
+					while (track1!=0)
+					{
+						track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
+						if(b_cnt++>=5000)//超过5000执行，这个函数每1ms调用一次,也就是说最多能转5s
+							break;
+					}
+					
+					delay(100);//给予一个100ms冗余，防止二次触发前进程序
+				}
+				
+				/*
+				*！！！！细调的部分可能导致驱动板烧坏，要连续地调整，同时防止速度过快出现惯性
+				*/
+				while (TRACK6||TRACK7)//细调
+				{
+					Adjust_Left();
+					track2=TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
+				}while(TRACK9||TRACK10)
+				{
+					Adjust_Right();
+					track2=TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
+				}
 			}
-
-			
 			
 		}
-		if (track2==100&&track1==0&&Parking_position)//只有车停稳之后才接收下一个指令
+		if (track2==100&&track1==0&&Parking_position&&Parking_Figure)//只有车停稳之后才接收下一个指令
 		{
 			if (current_command!=command)//接收到新指令时改变状态
 			{
 
 				current_command = command;//更新命令
 				reach_parking = false;    //刷新状态
-				Parking_position = false;
+				Parking_position = false; //车身未倒转
+				Parking_Figure = false;   //车身未校正
 				Update_node(command);     //初始化节点信息
 				OLED_Clear();
 			}
 			
 		}	
 	}
+	if (Parking_position&&!Parking_Figure)//车身已经倒转但是没有进行车身校正
+	{
+		
+		//进行车身校正
+		if (track2!=0)//如果前方循迹可以感应到循迹线
+		{
+			switch (track2)
+			{
+				case 100:
+					Lowspeed_Forward();
+					break;
+				case 1000:
+					Right_Forward();
+					break;
+				case 10:
+					Left_Forward();
+					break;
+				case 10000:
+					Right();
+					break;
+				case 1:
+					Left();
+					break;
+				/*--------------以上是单个灯的情况,下面是两个灯的情况----------------*/
+				case 1100:
+					Right_Forward();
+					break;
+				case 110:
+					Left_Forward();
+					break;
+				case 11000:
+					Right();
+					break;
+				case 11:
+					Left();
+					break;
+				default:
+				}
+		}else //前方循迹线感应不到，使用track1校正
+		{
+			switch (track1)
+			{
+				case 100:
+					Lowspeed_Forward();
+					break;
+				case 1000:
+					Right_Forward();
+					break;
+				case 10:
+					Left_Forward();
+					break;
+				case 10000:
+					Right();
+					break;
+				case 1:
+					Left();
+					break;
+				/*--------------以上是单个灯的情况,下面是两个灯的情况----------------*/
+				case 1100:
+					Right_Forward();
+					break;
+				case 110:
+					Left_Forward();
+					break;
+				case 11000:
+					Right();
+					break;
+				case 11:
+					Left();
+					break;
+				default:
+				    //全感应不到，试着走100ms，还没有就停下
+					Lowspeed_Forward();
+					delay(100);
+					Stop();
+					break;
+				}
+		}
+				
+				if (track1==100&&track2==100)//两个传感器均已到达中间
+				{
+					Parking_Figure = true; //车身已经校正完成
+					drv_uart_tx_bytes((uint8_t*)"Figure",6);
+				}
+				
+				
+				
+			}
 	if(track2 == 11111&&track1 == 11111)
 	{
 		Stop();//车被提起来了，停车
 		T_Flag = false;//会触发T弯，取消之
 	} 
-	else if (Parking_position&&track1!=0)//停稳后，车的中间传感器又意外回到
+	else if (Parking_position&&track1!=0&&Parking_Figure)//停稳后，车的中间传感器又意外回到
 		{
 			Lowspeed_Backward();
 				while (track1!=0)
@@ -579,14 +682,24 @@ void parking(int command)
 						break;
 				}
 					
-				delay(200);//给予一个20ms冗余，防止二次触发前进程序
+				delay(100);//给予一个20ms冗余，防止二次触发前进程序
+				//再细调一下
+				while (TRACK6||TRACK7)//细调
+				{
+					Adjust_Left();
+					track2=TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
+				}while(TRACK9||TRACK10)
+				{
+					Adjust_Right();
+					track2=TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
+				}
 		}
 	}else
 	{
 		Stop();
-			if (cnt_Obstacle>=1000) //程序每1ms执行一次，大约1s间隔报告障碍
+			if (cnt_Obstacle>=1000/20) //程序每20ms执行一次，大约1s间隔报告障碍
 				{
-					drv_uart_tx_bytes((uint8_t*)"There are obstacles ahead",25);  //报告前方有障碍物
+					drv_uart_tx_bytes((uint8_t*)"obstacles",strlen("obstacles"));  //报告前方有障碍物
 					cnt_Obstacle = 0;//刷新计数
 				}
 				cnt_Obstacle++;
@@ -875,9 +988,9 @@ void test_control(int command)
 		}else
 		{
 			Stop();
-			if (cnt_Obstacle>=1000) //程序每1ms执行一次，大约1s间隔报告障碍
+			if (cnt_Obstacle>=1000/20) //程序每20ms执行一次，大约1s间隔报告障碍
 				{
-					drv_uart_tx_bytes((uint8_t*)"There are obstacles ahead",25);  //报告前方有障碍物
+					drv_uart_tx_bytes((uint8_t*)"obstacles",strlen("obstacles"));  //报告前方有障碍物
 					cnt_Obstacle = 0;//刷新计数
 				}
 				cnt_Obstacle++;
