@@ -1338,8 +1338,10 @@ char Velocity_Number[7];
 char HighSpeed[10] = "HighSpeed";
 char LowSpeed[10] = "LowSpeed";
 char SlowSpeed[10] = "SlowSpeed";
+char FigureAdjust[15] = "FigureAdjust";
 int command = 1;     //要输入的目的地，只有当车停稳后才会输入
 extern int current_command = 1;	//当前履带车正在前往的目的地
+extern bool Parking_Figure;
 uint8_t LoRa_buffer[100] = {0};
 uint8_t RxLength = 0;
 char *Remote_message =  "RemoteControl\n";
@@ -1512,7 +1514,14 @@ int main(void)
 			{
 				SpeedGear = 0;
 				drv_uart_tx_bytes((uint8_t*)"Shift to SlowSpeed",18);
+			}else if (str_cmp(LoRa_buffer,FigureAdjust))
+			{
+				/*再次进行车位校正*/
+				Parking_Figure = false;//设置回未校正状态
+				drv_uart_tx_bytes((uint8_t*)"FigureAdjust",strlen("FigureAdjust"));
 			}
+			
+
 			else
 			{
 				drv_uart_tx_bytes((uint8_t*)error_message, 28);

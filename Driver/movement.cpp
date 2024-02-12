@@ -22,8 +22,8 @@ void Slowspeed_Forward(void)
 {
 	//手机秒表测得约为0.225m/s   
 	//码盘测得0.139m/s
-	pwm_y1 = slowspeed;
-	pwm_y2 = slowspeed;
+	pwm_y1 = slowspeed-10;
+	pwm_y2 = slowspeed-10;
 	motor1.spin(pwm_y1);   
 	motor2.spin(-pwm_y2);   
 	delay_us(100);
@@ -33,8 +33,8 @@ void Highspeed_Forward(void)
 {
 	//高速模式下手机秒表测得速度约为0.5m/s 测试距离:5.4m 但是测试距离1.8m/s时测得0.442m/s
 	//码盘测得0.335m/s
-	pwm_y1 = highspeed+10;
-	pwm_y2 = highspeed+10;
+	pwm_y1 = highspeed+30;
+	pwm_y2 = highspeed+30;
 	motor1.spin(pwm_y1);   
 	motor2.spin(-pwm_y2);   
 	delay_us(100);

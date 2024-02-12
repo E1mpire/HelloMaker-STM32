@@ -45,6 +45,7 @@ bool R_turn_allow = false;
 //停车入库设置
 bool reach_parking = true;    //是否到达停车点
 bool Parking_position = true; //是否倒车
+extern bool Parking_Figure;
 bool Parking_Figure = false;  //车身是否校正
 //车身方向
 bool Clockside = false;//代表此时车子时顺时针方向巡航
@@ -694,7 +695,9 @@ void parking(int command)
 					track2=TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
 				}
 		}
-	}else
+	}
+	
+	else
 	{
 		Stop();
 			if (cnt_Obstacle>=1000/20) //程序每20ms执行一次，大约1s间隔报告障碍

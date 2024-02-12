@@ -21,7 +21,7 @@
 #include <string.h>
 
 char HexHeader[10] = "414141";
-char CarNumber[5] = "C1"; //车辆编号，加在帧头之后，命令之前
+char CarNumber[5] = "C2"; //车辆编号，加在帧头之后，命令之前
 char Command_Header[50];
 //char TXBuffer[10];
 
