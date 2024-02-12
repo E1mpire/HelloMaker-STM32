@@ -7,11 +7,11 @@ fitresult = 36.7704*x_span.^4-1722.6416*x_span.^3+30209.6946*x_span.^2-234978.73
 
 % 绘制数据拟合图。
 figure( 'Name', '电池电量' );
-h = plot( x, y );
+h = plot( x, y ,'rx');
 hold on
-plot(x_span,fitresult)
+plot(x_span,fitresult,'k-')
 legend( '涓流表', '拟合结果' );
 % 为坐标区加标签
-xlabel( 'x', 'Interpreter', 'none' );
-ylabel( 'y', 'Interpreter', 'none' );
+xlabel( '电池电压' );
+ylabel( '电池电量' );
 grid on

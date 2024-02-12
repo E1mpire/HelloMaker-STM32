@@ -1334,12 +1334,14 @@ char Set_B[10] = "Set B";    //将当前位置设置为停车点1并重置状态
 char Set_C[10] = "Set C";    //将当前位置设置为停车点2并重置状态
 char Report[10] = "Report";  //报告当前位置
 char Battery_Report[15] = "BatteryReport";//报告电池电量
-char Velocity_Report[15];
+char Velocity_Number[7];
 char HighSpeed[10] = "HighSpeed";
 char LowSpeed[10] = "LowSpeed";
 char SlowSpeed[10] = "SlowSpeed";
+char FigureAdjust[15] = "FigureAdjust";
 int command = 1;     //要输入的目的地，只有当车停稳后才会输入
 extern int current_command = 1;	//当前履带车正在前往的目的地
+extern bool Parking_Figure;
 uint8_t LoRa_buffer[100] = {0};
 uint8_t RxLength = 0;
 char *Remote_message =  "RemoteControl\n";
@@ -1512,7 +1514,14 @@ int main(void)
 			{
 				SpeedGear = 0;
 				drv_uart_tx_bytes((uint8_t*)"Shift to SlowSpeed",18);
+			}else if (str_cmp(LoRa_buffer,FigureAdjust))
+			{
+				/*再次进行车位校正*/
+				Parking_Figure = false;//设置回未校正状态
+				drv_uart_tx_bytes((uint8_t*)"FigureAdjust",strlen("FigureAdjust"));
 			}
+			
+
 			else
 			{
 				drv_uart_tx_bytes((uint8_t*)error_message, 28);
@@ -1549,7 +1558,7 @@ int main(void)
 		    }
 
 		#if (CONNECT_DETEC)
-		if ((millis() - previous_command_time) >= 1 && !REMOTE_CONTROL_FLAG){  
+		if ((millis() - previous_command_time) >= 20 && !REMOTE_CONTROL_FLAG){  
 			/*
 			/程序控制模块，每1ms执行一次
 			*/
@@ -1566,6 +1575,7 @@ int main(void)
 			}
 			
 			//Lowspeed_Forward();
+			//Lowspeed_Forward();	
 			previous_command_time = millis();
 		}
 		if ((millis() - previous_battery_debug_time)>=10000)
@@ -1580,7 +1590,7 @@ int main(void)
 		
 
 		#if 1
-        if(((millis() - previous_movebase_time) >= 2000) && (!REMOTE_CONTROL_FLAG))
+        if(((millis() - previous_movebase_time) >= 3000) && (!REMOTE_CONTROL_FLAG))
         	{
 			/*
 			*由于没有码盘，这个模块是无效的
@@ -1590,8 +1600,11 @@ int main(void)
 			   //current_rpm2 = encoder2.getRPM();
 			   float ForwardVel = GetVelocity(current_rpm1,current_rpm2);
 			   if(raw_vel_msg.linear_x>ForwardVel) ForwardVel = (float)raw_vel_msg.linear_x;
-				sprintf(Velocity_Report,"%.3f",ForwardVel*PI/2);
-			   drv_uart_tx_bytes((uint8_t*)"Vel ",4);
+				//sprintf(Velocity_Number,"%.3f",ForwardVel*PI/2);
+				sprintf(Velocity_Number,"%.3f",ForwardVel);
+				char Velocity_Report[15] = "Vel ";
+			   strcat(Velocity_Report,Velocity_Number);
+			   //drv_uart_tx_bytes((uint8_t*)"Vel ",4);
 			   drv_uart_tx_bytes((uint8_t*)Velocity_Report,strlen(Velocity_Report));
 			   /*
 			   sprintf(Velocity_Report,"%d",(int)encoder1.getRPM());
@@ -1704,13 +1717,13 @@ int main(void)
 
 
 				
-				/*
+				
 				if (TRACK1) OLED_ShowNumber(0,48,1,1,16); else if(!TRACK1) OLED_ShowNumber(0,48,0,1,16);
 				if (TRACK2) OLED_ShowNumber(8,48,2,1,16); else if(!TRACK2) OLED_ShowNumber(8,48,0,1,16);
 				if (TRACK3) OLED_ShowNumber(16,48,3,1,16); else if(!TRACK3) OLED_ShowNumber(16,48,0,1,16);
 				if (TRACK4) OLED_ShowNumber(24,48,4,1,16); else if(!TRACK4) OLED_ShowNumber(24,48,0,1,16);
 				if (TRACK5) OLED_ShowNumber(32,48,5,1,16); else if(!TRACK5) OLED_ShowNumber(32,48,0,1,16);
-				*/
+				
 				/*
 				if (TRACK6) OLED_ShowNumber(0,48,1,1,16); else if(!TRACK6) OLED_ShowNumber(0,48,0,1,16);
 				if (TRACK7) OLED_ShowNumber(8,48,2,1,16); else if(!TRACK7) OLED_ShowNumber(8,48,0,1,16);

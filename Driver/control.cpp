@@ -10,10 +10,12 @@ int bias_time=50; //偏离轨道时调整的时间
 int LR_bias_time = 20;//使用左右转弯时调整的时间
 
 bool ShiftSpeedFlag = false; //进入变速模式标志
-extern int SpeedGear;
+extern int SpeedGear;//速度挡位
 int SpeedGear = 1;
 
 int cnt_Obstacle = 1000;//报告障碍间隔
+
+bool T_Flag = false; //是否检测到T型弯
 
 #if DELAY_TURN
 int bend_time =850; //转弯时间
@@ -41,9 +43,10 @@ extern int current_command;
 bool L_turn_allow = false; //True允许左转  false:FC C0 true:01 01
 bool R_turn_allow = false;
 //停车入库设置
-bool reach_parking = true;
+bool reach_parking = true;    //是否到达停车点
 bool Parking_position = true; //是否倒车
-bool Reverse_parking = false;//为True则需要倒车入库
+extern bool Parking_Figure;
+bool Parking_Figure = false;  //车身是否校正
 //车身方向
 bool Clockside = false;//代表此时车子时顺时针方向巡航
 /*
@@ -76,37 +79,37 @@ void Init_Route(void)
 	Parking->position = "Parking";
 	Parking->num = 1;
 	Parking->toA = 3;
-	Parking->toB = 2;
-	Parking->toC = 1;
+	Parking->toB = 1;
+	Parking->toC = 0;
 	Parking->toA_next = NULL;
 	Parking->toB_next = StopB; //到达后的next暂定
-	Parking->toC_next = Branch1;
+	Parking->toC_next = StopC;
 
 	StopB->position = "StopB";
 	StopB->num = 2;
-	StopB->toA = 1;
+	StopB->toA = 2;
 	StopB->toB = 3;
 	StopB->toC = 2;
 	StopB->toA_next = Parking;
 	StopB->toB_next = NULL;
-	StopB->toC_next = Branch2;
+	StopB->toC_next = Branch1;
 
 	StopC->position = "StopC";
 	StopC->num = 3;
 	StopC->toA = 2;
 	StopC->toB = 2;
 	StopC->toC = 3;
-	StopC->toA_next = Branch2;
-	StopC->toB_next = Branch2;
+	StopC->toA_next = Parking;
+	StopC->toB_next = Branch1;
 	StopC->toC_next = NULL;
 
 	Branch1->position = "Branch1";
 	Branch1->num = 4;
 	Branch1->toA = 1;//这里从Branch2来
-	Branch1->toB = 1;
+	Branch1->toB = 2;
 	Branch1->toC = 2;//这里从Parking来
-	Branch1->toA_next = Parking;
-	Branch1->toB_next = Parking;
+	Branch1->toA_next = NULL;
+	Branch1->toB_next = StopB;
 	Branch1->toC_next = StopC;
 
 	Branch2->position = "Branch2";
@@ -126,8 +129,10 @@ void Set_Node(int command)
 	//重新初始化相关变量
 	reach_parking = true;
 	Parking_position = true;
+	Parking_Figure = false; //默认没有校正车身
 	L_turn_allow = false; 
 	R_turn_allow = false;
+	current_command = command;
 	switch (command)
 	{
 	case 1:
@@ -271,14 +276,14 @@ void Update_node(int command)
 			}
 			else if (current_node->toA_next==NULL)//已经到达停车点位置的前方
 				{
-					if (previous_node == Branch1)//如果是从Branch1来的
+					if (previous_node == StopB)//如果是从停车点1来的
 					{
 						R_turn_allow = true;     //右转进入停车位
 						L_turn_allow = false;
-					}else if (previous_node == StopB)
+					}else if (previous_node == StopC)//如果是从停车点2
 					{
-						R_turn_allow = false;     //直行进入停车位
-						L_turn_allow = false;
+						R_turn_allow = false;     //左转进入停车位
+						L_turn_allow = true;
 					}
 					previous_node = previous_node->toA_next;//更新previous节点
 					
@@ -298,9 +303,9 @@ void Update_node(int command)
 				{
 					if (previous_node == Parking)//如果是从Parking来的
 					{
-						R_turn_allow = true;     //右转进入停车位
+						R_turn_allow = false;     //直行进入停车位
 						L_turn_allow = false;
-					}else if (previous_node == Branch2)
+					}else if (previous_node == Branch1)
 					{
 						R_turn_allow = false;     //直行进入停车位
 						L_turn_allow = false;
@@ -323,9 +328,9 @@ void Update_node(int command)
 				{
 					if (previous_node == Branch1)//如果是从Branch1来的
 					{
-						R_turn_allow = false;     //右转进入停车位
-						L_turn_allow = true;
-					}else if (previous_node == Branch2)
+						R_turn_allow = false;     //直行进入停车位
+						L_turn_allow = false;
+					}else if (previous_node == Parking)
 					{
 						R_turn_allow = false;     //直行进入停车位
 						L_turn_allow = false;
@@ -367,30 +372,29 @@ void ReportNode(void)
 }
 
 /*
-* 高速模式的启用,1为高速，0为普通
+* 。测速路段检测，进入测速路段开启变速模式,2为高速，1为普通，0为低速
 */
+int Tempspeed;
 void ShiftSpeedMode(void)
 {
-	if (current_node->num==3&&previous_node->num==4) 
+	if (previous_node->num==1&&(current_node->num==2||current_node->num==3)) 
 	{
 		if(!ShiftSpeedFlag) 
 		{
 			drv_uart_tx_bytes((uint8_t*)"ShiftSpeed",10); //报告	
 			ShiftSpeedFlag = true; //进入变速路段，开启变速
 		}
-
-		
-	}
-	
-	if (ShiftSpeedFlag)//在进入了变速模式的情况下
-	{
-		if (current_node->num==3&&previous_node->num==3&&((track2 == 11100)||(track2 == 11110)))
+		if (track2 == 11111 || track2 == 11110 || track2 == 1111) //即将进入弯道，变回普通速度
 		{
-			ShiftSpeedFlag = false; //当准备进入往停车点2的第一个弯时停止变速
-			drv_uart_tx_bytes((uint8_t*)"QuitShift",9);
-		}	
-			
+			Tempspeed = SpeedGear;
+			SpeedGear = 1;
+		}
 		
+	}else if (ShiftSpeedFlag)//在进入了变速模式的情况下
+	{
+		ShiftSpeedFlag = false; //当准备进入往停车点2的第一个弯时停止变速
+		SpeedGear = Tempspeed;//回复速度挡位
+		drv_uart_tx_bytes((uint8_t*)"QuitShift",9);
 	}
 	
 }
@@ -519,7 +523,7 @@ void parking(int command)
 		static int cnt_back;
 		if (track2!=100)
 		{
-		    //如果前方传感器没有识别到线，那么应该倒转
+		    //如果前方传感器没有识别到线且没有倒转，那么应该倒转
 			if (track2==0&&!Parking_position)
 			{
 				Parking_Left();
@@ -529,41 +533,147 @@ void parking(int command)
 				delay(100);
 				Lowspeed_Backward();
 				delay(200);
-				Parking_position=true;
+				Parking_position=true;//车身已经倒转
 			}
-
-			/*
-			*！！！！细调的部分可能导致驱动板烧坏，要连续地调整，同时防止速度过快出现惯性
-			*/
-			while (track2<100)//细调
+			else if (Parking_Figure&&Parking_position&&(track2!=100||track1!=0)) //车身校正与倒车均已完成,但是不是停车姿态
 			{
-				Adjust_Left();
-				track2=TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
-			}while(track2>100)
-			{
-				Adjust_Right();
-				track2=TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
+				if (track1!=0)
+				{
+					Lowspeed_Backward();
+					while (track1!=0)
+					{
+						track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
+						if(b_cnt++>=5000)//超过5000执行，这个函数每1ms调用一次,也就是说最多能转5s
+							break;
+					}
+					
+					delay(100);//给予一个100ms冗余，防止二次触发前进程序
+				}
+				
+				/*
+				*！！！！细调的部分可能导致驱动板烧坏，要连续地调整，同时防止速度过快出现惯性
+				*/
+				while (TRACK6||TRACK7)//细调
+				{
+					Adjust_Left();
+					track2=TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
+				}while(TRACK9||TRACK10)
+				{
+					Adjust_Right();
+					track2=TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
+				}
 			}
-
-			
 			
 		}
-		if (track2==100&&track1==0&&Parking_position)//只有车停稳之后才接收下一个指令
+		if (track2==100&&track1==0&&Parking_position&&Parking_Figure)//只有车停稳之后才接收下一个指令
 		{
 			if (current_command!=command)//接收到新指令时改变状态
 			{
 
 				current_command = command;//更新命令
 				reach_parking = false;    //刷新状态
-				Parking_position = false;
+				Parking_position = false; //车身未倒转
+				Parking_Figure = false;   //车身未校正
 				Update_node(command);     //初始化节点信息
 				OLED_Clear();
 			}
 			
 		}	
 	}
-	if(track2 == 11111&&track1 == 11111) Stop();//车被提起来了，停车
-	else if (Parking_position&&track1!=0)//停稳后，车的中间传感器又意外回到
+	if (Parking_position&&!Parking_Figure)//车身已经倒转但是没有进行车身校正
+	{
+		
+		//进行车身校正
+		if (track2!=0)//如果前方循迹可以感应到循迹线
+		{
+			switch (track2)
+			{
+				case 100:
+					Lowspeed_Forward();
+					break;
+				case 1000:
+					Right_Forward();
+					break;
+				case 10:
+					Left_Forward();
+					break;
+				case 10000:
+					Right();
+					break;
+				case 1:
+					Left();
+					break;
+				/*--------------以上是单个灯的情况,下面是两个灯的情况----------------*/
+				case 1100:
+					Right_Forward();
+					break;
+				case 110:
+					Left_Forward();
+					break;
+				case 11000:
+					Right();
+					break;
+				case 11:
+					Left();
+					break;
+				default:
+				}
+		}else //前方循迹线感应不到，使用track1校正
+		{
+			switch (track1)
+			{
+				case 100:
+					Lowspeed_Forward();
+					break;
+				case 1000:
+					Right_Forward();
+					break;
+				case 10:
+					Left_Forward();
+					break;
+				case 10000:
+					Right();
+					break;
+				case 1:
+					Left();
+					break;
+				/*--------------以上是单个灯的情况,下面是两个灯的情况----------------*/
+				case 1100:
+					Right_Forward();
+					break;
+				case 110:
+					Left_Forward();
+					break;
+				case 11000:
+					Right();
+					break;
+				case 11:
+					Left();
+					break;
+				default:
+				    //全感应不到，试着走100ms，还没有就停下
+					Lowspeed_Forward();
+					delay(100);
+					Stop();
+					break;
+				}
+		}
+				
+				if (track1==100&&track2==100)//两个传感器均已到达中间
+				{
+					Parking_Figure = true; //车身已经校正完成
+					drv_uart_tx_bytes((uint8_t*)"Figure",6);
+				}
+				
+				
+				
+			}
+	if(track2 == 11111&&track1 == 11111)
+	{
+		Stop();//车被提起来了，停车
+		T_Flag = false;//会触发T弯，取消之
+	} 
+	else if (Parking_position&&track1!=0&&Parking_Figure)//停稳后，车的中间传感器又意外回到
 		{
 			Lowspeed_Backward();
 				while (track1!=0)
@@ -573,21 +683,60 @@ void parking(int command)
 						break;
 				}
 					
-				delay(200);//给予一个20ms冗余，防止二次触发前进程序
+				delay(100);//给予一个20ms冗余，防止二次触发前进程序
+				//再细调一下
+				while (TRACK6||TRACK7)//细调
+				{
+					Adjust_Left();
+					track2=TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
+				}while(TRACK9||TRACK10)
+				{
+					Adjust_Right();
+					track2=TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
+				}
 		}
-	}else
+	}
+	
+	else
 	{
 		Stop();
-			if (cnt_Obstacle>=1000) //程序每1ms执行一次，大约1s间隔报告障碍
+			if (cnt_Obstacle>=1000/20) //程序每20ms执行一次，大约1s间隔报告障碍
 				{
-					drv_uart_tx_bytes((uint8_t*)"There are obstacles ahead",25);  //报告前方有障碍物
+					drv_uart_tx_bytes((uint8_t*)"obstacles",strlen("obstacles"));  //报告前方有障碍物
 					cnt_Obstacle = 0;//刷新计数
 				}
 				cnt_Obstacle++;
 	}
 	
 }
-
+//T型弯处理
+void TTurn(void)
+{
+	drv_uart_tx_bytes((uint8_t*)"T",1);
+	if(L_turn_allow)drv_uart_tx_bytes((uint8_t*)"Left_allow ",11);
+	else drv_uart_tx_bytes((uint8_t*)"Left_false ",11);
+	if(R_turn_allow)drv_uart_tx_bytes((uint8_t*)"Right_allow ",12);
+	else drv_uart_tx_bytes((uint8_t*)"Right_false ",12);
+	if (L_turn_allow)
+	{
+		Stop();
+		delay(100);
+		L_Turn_Flag = 1;
+		through_node = true; //走过了分岔口，在过弯后需要更新节点信息
+	}else if (R_turn_allow)
+	{
+		Stop();
+		delay(100);
+		R_Turn_Flag = 1;
+		through_node = true; //走过了分岔口，在过弯后需要更新节点信息
+	}		
+	else
+	{
+		Stop(); //出现错误了，直接停车
+		drv_uart_tx_bytes((uint8_t*)"Error",5);
+	}
+	T_Flag = false;
+}
 
 bool Edge_Statue = false;
 void test_control(int command)
@@ -609,6 +758,7 @@ void test_control(int command)
 	track2 = TRACK6 + TRACK7*10 + TRACK8*100 + TRACK9*1000 + TRACK10*10000;
 	#endif
 	if(track1!=0||track2!=0) Stop_cnt=0;//重新找到循迹线，停车计数停止
+	if(track2 == 11111) T_Flag=true;//如果前方传感器检测到T型弯
 	#if !DELAY_TURN
 	if(!L_Turn_Flag&&!R_Turn_Flag) //没有在进行转向
 	{
@@ -619,37 +769,14 @@ void test_control(int command)
 				//T字形分岔口或是到达停车位
 			if (track1 == 11111)
 			{
-				drv_uart_tx_bytes((uint8_t*)"T",1);
-				if(L_turn_allow)drv_uart_tx_bytes((uint8_t*)"Left_allow ",11);
-				else drv_uart_tx_bytes((uint8_t*)"Left_false ",11);
-				if(R_turn_allow)drv_uart_tx_bytes((uint8_t*)"Right_allow ",12);
-				else drv_uart_tx_bytes((uint8_t*)"Right_false ",12);
-				if (L_turn_allow)
-				{
-					Stop();
-					delay(100);
-					L_Turn_Flag = 1;
-					through_node = true; //走过了分岔口，在过弯后需要更新节点信息
-				}else if (R_turn_allow)
-				{
-					Stop();
-					delay(100);
-					R_Turn_Flag = 1;
-					through_node = true; //走过了分岔口，在过弯后需要更新节点信息
-				}		
-				else
-				{
-					Stop(); //出现错误了，直接停车
-					drv_uart_tx_bytes((uint8_t*)"Error",5);
-				}
-				
+				TTurn();
 			}
-			else if((track1 == 111)||(track1 == 1111))  // 左转
+			else if(((track1 == 111)||(track1 == 1111)))  // 左转
 			{	
 				
-				delay(30);
-				track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
-				if ((track1 == 111)||(track1 == 1111))//防止将T形岔口认成左右转
+				//delay(30);
+				//track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
+				if (!T_Flag)//不是T弯
 				{
 					drv_uart_tx_bytes((uint8_t*)"Left",5);
 					//如果前方传感器没有感应到黑线，说明没有分岔口；若有分岔口程序允许左转的时候也可以转
@@ -658,16 +785,16 @@ void test_control(int command)
 					Stop();
 					delay(100);
 					L_Turn_Flag = 1;
-					//Left();
-					//delay(1000);//先转一下，防止过早结束旋转
+					Left();
+					delay(1000);//先转一下，防止过早结束旋转
 				}
 				else if (L_turn_allow)//如果检测到分岔口，但是有转向许可
 				{
 					Stop();
 					delay(100);
 					L_Turn_Flag = 1;
-					//Left();
-					//delay(1000);//先转一下，防止过早结束旋转
+					Left();
+					delay(1000);//先转一下，防止过早结束旋转
 					through_node = true; //走过了分岔口，在过弯后需要更新节点信息
 				}
 				
@@ -677,45 +804,53 @@ void test_control(int command)
 					delay(200);//要让它走过那条循迹线，不再判断了
 					Update_node(command);//更新节点信息
 				}
+				}else
+				{
+					//是T弯，认错了
+					TTurn();
 				}
 				
 				
 				
 			}
-			else if((track1 == 11100)||(track1 == 11110)) //右转
+			else if(((track1 == 11100)||(track1 == 11110))&&!T_Flag) //右转
 			{
 				
-				delay(30);
-				track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
-				if ((track1 == 11100)||(track1 == 11110))
+				//delay(30);
+				//track1 = TRACK1 + TRACK2*10 + TRACK3*100 + TRACK4*1000 + TRACK5*10000;
+				if (!T_Flag)
 				{
 					drv_uart_tx_bytes((uint8_t*)"Right",5);
 					if (track2 == 0)
-				{
-					Stop();
-					delay(100);
-					R_Turn_Flag = 1;
-					//Right();
-					//delay(1000);//先转一下，防止过早结束旋转
-				}
+					{
+						Stop();
+						delay(100);
+						R_Turn_Flag = 1;
+						Right();
+						delay(1000);//先转一下，防止过早结束旋转
+					}
 				else if (R_turn_allow)//如果检测到分岔口，但是有转向许可
-				{
-					Stop();
-					delay(100);
-					R_Turn_Flag = 1;
-					//Right();
-					//delay(1000);//先转一下，防止过早结束旋转
-					through_node = true; //走过了分岔口，在过弯后需要更新节点信息
-				}
+					{
+						Stop();
+						delay(100);
+						R_Turn_Flag = 1;
+						Right();
+						delay(1000);//先转一下，防止过早结束旋转
+						through_node = true; //走过了分岔口，在过弯后需要更新节点信息
+					}
 				
 				else//既检测到分岔口，又不允许转向，说明程序要求往前走
-				{
-					Lowspeed_Forward();
-					delay(200);//要让它走过那条循迹线，不再判断了
-					Update_node(command);//更新节点信息
-				}
+					{
+						Lowspeed_Forward();
+						delay(200);//要让它走过那条循迹线，不再判断了
+						Update_node(command);//更新节点信息
+					}
 				
 
+				}else
+				{
+					//是T弯，认错了
+					TTurn();
 				}
 				
 				
@@ -789,13 +924,13 @@ void test_control(int command)
 					//Lowspeed_Forward();
 				}
 			}
-			else if (track2 == 10000)//车身极度左偏
+			else if (track2 == 10000||track2==11000)//车身极度左偏
 			{
 					Right();
 					//delay(LR_bias_time);
 					//Lowspeed_Forward();
 			}
-			else if (track2 == 1)//车头极度右偏
+			else if (track2 == 1||track2==11)//车头极度右偏
 			{
 					Left();
 					//delay(LR_bias_time);
@@ -856,9 +991,9 @@ void test_control(int command)
 		}else
 		{
 			Stop();
-			if (cnt_Obstacle>=1000) //程序每1ms执行一次，大约1s间隔报告障碍
+			if (cnt_Obstacle>=1000/20) //程序每20ms执行一次，大约1s间隔报告障碍
 				{
-					drv_uart_tx_bytes((uint8_t*)"There are obstacles ahead",25);  //报告前方有障碍物
+					drv_uart_tx_bytes((uint8_t*)"obstacles",strlen("obstacles"));  //报告前方有障碍物
 					cnt_Obstacle = 0;//刷新计数
 				}
 				cnt_Obstacle++;
@@ -876,7 +1011,7 @@ void test_control(int command)
 		Left();
 		//if(track2==1) Edge_Statue = true; //防止不经旋转就退出转向模式
 		//if (track2 == 10&&Edge_Statue)
-		if (track2 == 10)
+		if (track2 == 10||track2==110)
 		{
 			//Edge_Statue = false;
 			L_Turn_Flag=0; 
@@ -884,8 +1019,8 @@ void test_control(int command)
 
 			//Lowspeed_Forward();//为了让中间传感器走过循迹线，不误触发转向
 			//delay(100);
-			Right_Forward();
-			delay(400);    
+			Lowspeed_Forward();
+			delay(300);    
 			if(through_node)//过弯，且是走过有分岔口的弯，更新节点信息
 			{
 				Update_node(command);
@@ -908,15 +1043,15 @@ void test_control(int command)
 		Right();
 		//if(track2==10000) Edge_Statue = true;
 		//if (track2 == 1000&&Edge_Statue)
-		if (track2 == 1000)
+		if (track2 == 1000||track2==1100)
 		{
 			//Edge_Statue = false;
 			R_Turn_Flag=0;
 			lr_cnt = 0;
 			//Lowspeed_Forward();
 			//delay(100);
-			Left_Forward();
-			delay(400);
+			Lowspeed_Forward();
+			delay(300);
 			if(through_node)//过弯，且是走过有分岔口的弯，更新节点信息
 			{
 				Update_node(command);
@@ -934,5 +1069,10 @@ void test_control(int command)
 	}
 
 	#endif
-	if(track2 == 11111&&track1 == 11111) Stop();//车被提起来了，停车
+	if(track2 == 11111&&track1 == 11111) 
+	{
+		Stop();//车被提起来了，停车
+		T_Flag = false;//这个时候会触发T弯，要关掉
+	}
+	
 }

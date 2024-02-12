@@ -48,6 +48,11 @@
 #define MO2_GPIO_CLK          RCC_APB2Periph_GPIOA
 #define MO2_GPIO_PIN          GPIO_Pin_12
 
+// 工作模式定义
+//1是定点传输 0是透明传输
+#define TRANCE_MODE 1
+
+
 void drv_uart_init( uint32_t UartBaudRate );
 void drv_uart_tx_bytes( uint8_t* TxBuffer, uint8_t Length );
 uint8_t drv_uart_rx_bytes( uint8_t* RxBuffer );
